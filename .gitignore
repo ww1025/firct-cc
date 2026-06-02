@@ -1,0 +1,6 @@
+node_modules/
+.cursor/
+.claude/
+*.bat
+*.ps1
+package-lock.json

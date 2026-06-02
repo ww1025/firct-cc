@@ -1,0 +1,44 @@
+Claude Code 与本机分工说明
+============================
+
+一、为什么会被「安全模式」拦住？
+--------------------------------
+Claude Code 底部显示 auto mode on 时，AI 自动执行 PowerShell / npm 前，
+会先调用「安全分类器」判断命令是否安全。
+
+若出现：
+  claude-opus-4-8[1m] is temporarily unavailable, so auto mode cannot determine
+  the safety of PowerShell right now.
+
+含义是：分类器 API 暂时不可用（过载、代理抖动等），不是 Node 没装、也不是 Windows 防火墙。
+此时：写文件（Write）往往仍可用；跑终端（npm install 等）会被拒绝。
+
+二、推荐分工
+------------
+  Claude Code（会话里）     → 写/改代码、读文件、回答问题
+  本机终端 / 双击 .bat      → npm install、npm start、系统命令
+
+不要让 Claude 在 auto mode 下反复执行 npm install，容易一直被拦。
+
+三、本机常用命令（在项目目录执行）
+----------------------------------
+  cd "C:\Users\夏瑞泽\Desktop\firct cc"
+
+  安装依赖（首次或 package.json 变更后）：
+    & "C:\Program Files\nodejs\npm.cmd" install
+  或双击 install.bat
+
+  启动 Electron 桌面版：
+    & "C:\Program Files\nodejs\npm.cmd" start
+  或双击 启动番茄钟.bat（已优先 Electron，无依赖时回退 Edge 版）
+
+四、若必须在 Claude 里跑命令
+----------------------------
+  1. 按 Shift+Tab 切换，直到底部不再是 auto mode on
+  2. 再让 AI 执行命令时，通常会弹出是否允许
+  3. 或等几分钟后重试（分类器恢复）
+
+五、CC Switch 用户注意
+----------------------
+  settings.json 中 ANTHROPIC_BASE_URL 为 http://127.0.0.1:15721 时，
+  主对话与分类器都经代理；代理不稳定时更容易出现上述拦截。
