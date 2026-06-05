@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>日常升降旗排班</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","微软雅黑",sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);min-height:100vh;color:#eee;padding:20px}
+.container{max-width:780px;margin:0 auto}
+.app-title{text-align:center;padding:24px 0 16px;font-size:28px;font-weight:bold;background:linear-gradient(135deg,#e73c3c,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:4px}
+.subtitle{text-align:center;color:#888;font-size:13px;margin-bottom:20px}
+.weekday-bar{display:flex;gap:10px;justify-content:center;margin:16px 0 24px}
+.weekday-btn{width:72px;height:48px;border:2px solid #c0392b;border-radius:10px;background:transparent;color:#e74c3c;font-size:18px;font-weight:bold;cursor:pointer;transition:all .2s}
+.weekday-btn:hover{background:rgba(231,76,60,.15)}
+.weekday-btn.active{background:#c0392b;color:#fff;box-shadow:0 0 20px rgba(231,76,60,.4)}
+.weekday-btn.monday{border-color:#f39c12;color:#f39c12}
+.weekday-btn.monday.active{background:#f39c12;color:#000}
+.result-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px;margin-bottom:20px;font-size:16px;line-height:2.2;letter-spacing:1px}
+.result-card h2{text-align:center;font-size:22px;margin-bottom:4px;color:#e74c3c}
+.date-line{text-align:center;color:#888;font-size:13px;margin-bottom:20px}
+.section-title{color:#f39c12;font-size:18px;font-weight:bold;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:6px;margin:20px 0 12px}
+.row{display:flex;align-items:baseline;gap:8px;padding:2px 0}
+.label{color:#aaa;white-space:nowrap;min-width:80px;text-align:right}
+.name{color:#fff}.name.highlight{color:#e74c3c;font-weight:bold}
+.flag-row{display:flex;justify-content:center;gap:24px;margin:12px 0;font-size:15px}
+.flag-item{text-align:center}.flag-item .pos{font-size:11px;color:#888}
+.action-bar{display:flex;gap:12px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+.btn{padding:10px 28px;border-radius:8px;font-size:15px;cursor:pointer;border:none;font-weight:bold;transition:all .2s}
+.btn-primary{background:#c0392b;color:#fff}.btn-primary:hover{background:#e74c3c}
+.btn-outline{background:transparent;border:1px solid #888;color:#ccc}.btn-outline:hover{background:rgba(255,255,255,.1)}
+.warning{color:#f39c12;font-size:13px;text-align:center;padding:8px}
+.banzhang-note{color:#666;font-size:13px;text-align:center;margin-top:8px}
+@media print{body{background:#fff;color:#000}.result-card{border:1px solid#ccc}.action-bar,.weekday-bar,.app-title,.subtitle,.warning{display:none}}
+</style></head>
+<body>
+<div class="container">
+<div class="app-title">日常升降旗排班</div>
+<div class="subtitle">国旗护卫队 · 随机队列生成器</div>
+<div class="weekday-bar" id="weekdayBar">
+<button class="weekday-btn monday" data-day="周一">周一</button>
+<button class="weekday-btn" data-day="周二">周二</button>
+<button class="weekday-btn" data-day="周三">周三</button>
+<button class="weekday-btn" data-day="周四">周四</button>
+<button class="weekday-btn" data-day="周五">周五</button>
+</div>
+<div class="action-bar">
+<button class="btn btn-outline" onclick="pickToday()">📅 今天</button>
+<button class="btn btn-outline" onclick="reshuffle()">🎲 重新随机</button>
+<button class="btn btn-primary" onclick="exportCSV()">📥 导出 Excel</button>
+<button class="btn btn-outline" onclick="window.print()">🖨️ 打印</button>
+</div>
+<div id="warning" class="warning" style="display:none"></div>
+<div class="result-card" id="resultCard"><p style="text-align:center;color:#666;padding:60px 0">👆 点击上方星期按钮生成排班队列</p></div>
+<div class="banzhang-note" id="banzhangNote"></div>
+</div>
+
+<script>
+// ====== 名单 ======
+const ROSTER = {
+  "周一":{班长:"方嫄",members:["方嫄","张鹏","江文欣","岳佳凝","沈昊","韩雅丽","夏瑞泽","顾铭文","吴昕桐","李诗诗","胡思源","郭婷心","陈涵予","孜英"]},
+  "周二":{班长:"柳洋",members:["柳洋","姚忻成","马欣雅","张博宣","吕凯进","章晏华","姚爽","柯天翊","王梓丞","张子恒","章芮容","余佳卉"]},
+  "周三":{班长:"纪博雅",members:["纪博雅","方佳瑶","祁子谦","项烨","呼岳洋","张子昂","董欢瑶","张煜琦","李泽一","努尔加娜特","孙鸣","冯敬栩","叶栩浩"]},
+  "周四":{班长:"朱家兴",members:["朱家兴","施东隅","林珩","韦景浩","艾克达","俞恩祺","肖玉茂","韩钧宇","戴傲","王雨梦","潘睿","李承哲","张嘉靖"]},
+  "周五":{班长:"楼震霆",members:["楼震霆","张艺","陆荪桐","许诺","林育臣","陈思骆","文科","钱俊宇","叶宇轩","李思齐","段茗萱","吴桐"]}
+};
+
+const FEMALES = new Set(["江文欣","岳佳凝","韩雅丽","李诗诗","郭婷心","陈涵予","马欣雅","柯天翊","章芮容","余佳卉","方佳瑶","祁子谦","呼岳洋","董欢瑶","李泽一","施东隅","林珩","艾克达","俞恩祺","王雨梦","张艺","许诺","段茗萱","吴桐"]);
+
+function isF(p){return FEMALES.has(p)}
+function isM(p){return !FEMALES.has(p)}
+
+// ====== 工具 ======
+function shuffle(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=b[i];b[i]=b[j];b[j]=t}return b}
+
+// ====== 核心生成 ======
+// 升旗11人：旗组3人(全男) + 护旗队4对8人(同行同性别，男先女后)
+// 礼服检查2人 ← 从升旗队列中选  内务整理1人 ← 从升旗队列中选（≠礼服）
+// 南大门1人 ← 班级剩余  降旗4人 ← 班级中选
+function genQ(dk){
+  var cls=ROSTER[dk];if(!cls)return null;
+  var bz=cls.班长||'';
+  var all=cls.members.map(function(m){return m.trim()}).filter(function(m){return m});
+  if(!all.length)return null;
+
+  // 分性别池
+  var males=[], females=[];
+  for(var i=0;i<all.length;i++){
+    if(isM(all[i])) males.push(all[i]);
+    else females.push(all[i]);
+  }
+  males=shuffle(males);
+  females=shuffle(females);
+
+  var mi=0, fi=0;
+  function nxtM(){while(mi<males.length){return males[mi++]}return''}
+  function nxtF(){while(fi<females.length){return females[fi++]}return''}
+  function nxtG(g){return g==='M'?nxtM():g==='F'?nxtF():''}
+
+  // === 旗组：Row1 = 3人全男 ===
+  var fg=[nxtM(), nxtM(), nxtM()];
+
+  // === 护旗队：Rows 2-5，4对8人，男生优先 ===
+  var remM=males.length-3, remF=females.length;
+  var pairG=[];
+  for(var i=0;i<4;i++){
+    if(remM>=2){pairG.push('M');remM-=2}
+    else if(remF>=2){pairG.push('F');remF-=2}
+    else{pairG.push('X')}
+  }
+  var pr=[];
+  for(var i2=0;i2<4;i2++){pr.push([nxtG(pairG[i2]), nxtG(pairG[i2])])}
+
+  // 升旗队列11人名单
+  var sq=fg.concat(pr[0][0],pr[0][1],pr[1][0],pr[1][1],pr[2][0],pr[2][1],pr[3][0],pr[3][1]);
+  sq=sq.filter(function(x){return x});
+
+  var q={};
+  q.c3={lib:fg[0], flagL:pr[0][0], kouling:pr[1][0], flagR:pr[2][0], qishou:pr[3][0]};
+  q.c4={lib:fg[1]};
+  q.c5={lib:fg[2], flagL:pr[0][1], kouling:pr[1][1], flagR:pr[2][1], qishou:pr[3][1]};
+
+  // === 后勤（从升旗队列中选）===
+  var sqp=shuffle(sq.slice()), spi=0;
+  function pickSQ(){while(spi<sqp.length){var p=sqp[spi++];if(p)return p}return''}
+  var fc1=pickSQ(), fc2=pickSQ();
+  while(fc2&&fc2===fc1)fc2=pickSQ();
+  var nw=pickSQ();
+  while(nw&&(nw===fc1||nw===fc2))nw=pickSQ();
+  q.fc=[fc1, fc2];
+  q.nw=nw;
+
+  // === 南大门：从班级剩余（不在升旗队列）===
+  var allP=shuffle(all.slice()), ai=0;
+  function nxtR(){
+    while(ai<allP.length){var p=allP[ai++];if(p&&sq.indexOf(p)<0)return p}
+    return'';
+  }
+  q.nandamen=nxtR();
+
+  // === 降旗：4人从班级中选（图书馆3人 + 南大门1人）===
+  var jp=shuffle(all.slice()), ji=0, ju={};
+  if(q.nandamen)ju[q.nandamen]=1;
+  function nxtJ(){
+    while(ji<jp.length){var p=jp[ji++];if(p&&!ju[p]){ju[p]=1;return p}}
+    return'';
+  }
+  q.pmLib=[nxtJ(), nxtJ(), nxtJ()];
+  q.pmGate=nxtJ();
+  if(q.pmGate&&q.pmGate===q.nandamen)q.pmGate=nxtJ();
+
+  q.fg='M';
+  return{q:q,bz:bz,dk:dk,fg:'M'};
+}
+
+// ====== 渲染 ======
+function B(n){return n||''}
+function T(v){return v||''}
+function render(dk){
+  var r=genQ(dk);if(!r){document.getElementById('resultCard').innerHTML='<p style="text-align:center;color:#f39c12;padding:60px 0">⚠ '+dk+'班暂无人员名单</p>';return}
+  currentDay=dk;currentQueue=r;var q=r.q;
+  document.getElementById('warning').style.display='none';
+
+  var h='<h2>'+dk+' 升旗降旗队列</h2><div class="date-line">'+getDS()+'</div>';
+  h+='<style>.qt{border-collapse:collapse;width:100%;margin:16px 0;color:#000}.qt td{text-align:center;vertical-align:middle;padding:6px 4px;font-size:14px;border:1px solid #000;font-weight:normal;background:#fff}.bt{border-top:2px solid #000}.bb{border-bottom:2px solid #000}.bl{border-left:2px solid #000}.br{border-right:2px solid #000}</style>';
+  h+='<table class="qt">';
+  // R1: 升旗(A1:A8合并) | 图书馆 | c3.lib | c4.lib | c5.lib  (B1:E5 粗外框: B1左上, C1/D1上, E1右上)
+  h+='<tr><td rowspan="8">升旗</td><td class="bt bl">图书馆</td><td class="bt">'+T(q.c3.lib)+'</td><td class="bt">'+T(q.c4.lib)+'</td><td class="bt br">'+T(q.c5.lib)+'</td></tr>';
+  // R2:  | 空白 | c3.flagL | (空) | c5.flagL
+  h+='<tr><td class="bl"></td><td>'+B(q.c3.flagL)+'</td><td></td><td class="br">'+B(q.c5.flagL)+'</td></tr>';
+  // R3:  | (口令员) | c3.kouling | (空) | c5.kouling
+  h+='<tr><td class="bl">（口令员）</td><td>'+B(q.c3.kouling)+'</td><td></td><td class="br">'+B(q.c5.kouling)+'</td></tr>';
+  // R4:  | 空白 | c3.flagR | (空) | c5.flagR
+  h+='<tr><td class="bl"></td><td>'+B(q.c3.flagR)+'</td><td></td><td class="br">'+B(q.c5.flagR)+'</td></tr>';
+  // R5:  | 空白 | c3.qishou | (空) | c5.qishou  (B1:E5 粗外框底边)
+  h+='<tr><td class="bl bb"></td><td class="bb">'+B(q.c3.qishou)+'</td><td class="bb"></td><td class="br bb">'+B(q.c5.qishou)+'</td></tr>';
+  // R6: (A列已被rowspan覆盖) | 南大门 | gate | — | —
+  h+='<tr><td>南大门</td><td>'+B(q.nandamen)+'</td><td></td><td></td></tr>';
+  // R7: | 礼服检查 | fc[0] | fc[1] | —
+  h+='<tr><td>礼服检查</td><td>'+T(q.fc[0])+'</td><td>'+T(q.fc[1])+'</td><td></td></tr>';
+  // R8: | 内务整理 | nw | — | —
+  h+='<tr><td>内务整理</td><td>'+T(q.nw)+'</td><td></td><td></td></tr>';
+  // R9: 降旗(A9:A10合并) | 图书馆 | pmLib[0] | pmLib[1] | pmLib[2]
+  h+='<tr><td rowspan="2">降旗</td><td>图书馆</td><td>'+T(q.pmLib[0])+'</td><td>'+T(q.pmLib[1])+'</td><td>'+T(q.pmLib[2])+'</td></tr>';
+  // R10:  | 南大门 | pmGate | — | —
+  h+='<tr><td>南大门</td><td>'+B(q.pmGate)+'</td><td></td><td></td></tr>';
+  h+='</table>';
+
+  document.getElementById('resultCard').innerHTML=h;
+  document.getElementById('banzhangNote').textContent='班长：'+r.bz+' | 旗组：全男♂(3人) | 护旗队：4对(同行同性别·男先女后) | 礼服检查2人+内务1人 ← 升旗队列 | 降旗4人 ← 本班';
+}
+
+function getDS(){var n=new Date();return n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日'}
+var currentDay=null,currentQueue=null;
+
+document.getElementById('weekdayBar').addEventListener('click',function(e){if(e.target.dataset.day){document.querySelectorAll('.weekday-btn').forEach(function(b){b.classList.remove('active')});e.target.classList.add('active');render(e.target.dataset.day)}});
+
+function reshuffle(){if(currentDay)render(currentDay)}
+function pickToday(){var m={1:'周一',2:'周二',3:'周三',4:'周四',5:'周五'};var d=m[new Date().getDay()];if(!d){document.getElementById('resultCard').innerHTML='<p style="text-align:center;color:#888;padding:60px 0">今天是周末，不排班 🎉</p>';return}document.querySelectorAll('.weekday-btn').forEach(function(b){b.classList.remove('active');if(b.dataset.day===d)b.classList.add('active')});render(d)}
+
+// ====== 导出 Excel（真正 XLSX — 纯 JS ZIP + OOXML）======
+function exportCSV(){
+  if(!currentQueue){alert('请先生成队列再导出！');return}
+  var q=currentQueue.q, dk=currentQueue.dk;
+
+  // ==================== 工具函数 ====================
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+  function escA(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}
+
+  // CRC32 查表
+  var _ct=[]; for(var i=0;i<256;i++){var c=i;for(var j=0;j<8;j++)c=(c&1)?0xEDB88320^(c>>>1):c>>>1;_ct.push(c);}
+  function crc32(d){var crc=0xFFFFFFFF;for(var i=0;i<d.length;i++)crc=_ct[(crc^d[i])&0xFF]^(crc>>>8);return(crc^0xFFFFFFFF)>>>0;}
+
+  var te=new TextEncoder();
+  function toB(s){return te.encode(s);}
+
+  // ZIP 小端写入
+  function w2(v){var a=new Uint8Array(2);a[0]=v&0xFF;a[1]=(v>>8)&0xFF;return a;}
+  function w4(v){var a=new Uint8Array(4);a[0]=v&0xFF;a[1]=(v>>8)&0xFF;a[2]=(v>>16)&0xFF;a[3]=(v>>24)&0xFF;return a;}
+
+  var now=new Date();
+  var zt=(now.getHours()<<11)|(now.getMinutes()<<5)|(Math.floor(now.getSeconds()/2));
+  var zd=((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+
+  // ZIP 本地文件头
+  function lfh(name,data){
+    var nb=toB(name), crc=crc32(data), sz=data.length;
+    var h=new Uint8Array(30+nb.length);
+    h.set([0x50,0x4B,0x03,0x04, 20,0, 0,0, 0,0],0);       // sig + ver + flag + method=store
+    h.set(w2(zt),10); h.set(w2(zd),12);
+    h.set(w4(crc),14); h.set(w4(sz),18); h.set(w4(sz),22); // crc + compSz + uncompSz
+    h.set(w2(nb.length),26); h.set([0,0],28);               // nameLen + extraLen=0
+    h.set(nb,30);
+    return h;
+  }
+  // ZIP 中央目录项
+  function cde(name,data,off){
+    var nb=toB(name), crc=crc32(data), sz=data.length;
+    var h=new Uint8Array(46+nb.length);
+    h.set([0x50,0x4B,0x01,0x02, 20,0, 20,0, 0,0, 0,0],0);  // sig + verMade + verNeed + flag + method
+    h.set(w2(zt),12); h.set(w2(zd),14);
+    h.set(w4(crc),16); h.set(w4(sz),20); h.set(w4(sz),24);
+    h.set(w2(nb.length),28); h.set([0,0, 0,0, 0,0, 0,0, 0,0],30); // nameLen+extra+comment, disk+attrs
+    h.set(w4(off),42);  // offset of local header
+    h.set(nb,46);
+    return h;
+  }
+  // ZIP 结束标记
+  function eocd(count,cdSize,cdOff){
+    var h=new Uint8Array(22);
+    h.set([0x50,0x4B,0x05,0x06, 0,0, 0,0],0);
+    h.set(w2(count),8); h.set(w2(count),10);
+    h.set(w4(cdSize),12); h.set(w4(cdOff),16);
+    h.set([0,0],20);
+    return h;
+  }
+
+  function cat(parts){
+    var len=0; for(var i=0;i<parts.length;i++)len+=parts[i].length;
+    var out=new Uint8Array(len), pos=0;
+    for(var i=0;i<parts.length;i++){out.set(parts[i],pos);pos+=parts[i].length;}
+    return out;
+  }
+
+  // ==================== 构建 OOXML ====================
+
+  // --- [Content_Types].xml ---
+  var ctXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+    '<Default Extension="xml" ContentType="application/xml"/>'+
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+    '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'+
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+    '</Types>';
+
+  // --- _rels/.rels ---
+  var relXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'+
+    '</Relationships>';
+
+  // --- xl/workbook.xml ---
+  var wbXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+    '<sheets><sheet name="'+escA(dk)+'升旗旗" sheetId="1" r:id="rId1"/></sheets></workbook>';
+
+  // --- xl/_rels/workbook.xml.rels ---
+  var wbrXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+    '</Relationships>';
+
+  // --- xl/styles.xml ---
+  // border 0=none 1=thin all  2-9=thick combos for B1:E5 outer
+  var stylesXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+    '<fonts count="1">'+
+      '<font><sz val="11"/><name val="微软雅黑"/></font>'+
+    '</fonts>'+
+    '<fills count="2">'+
+      '<fill><patternFill patternType="none"/></fill>'+
+      '<fill><patternFill patternType="gray125"/></fill>'+
+    '</fills>'+
+    '<borders count="10">'+
+      '<border><left/><right/><top/><bottom/></border>'+   // 0: none
+      '<border>'+   // 1: thin all
+        '<left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right>'+
+        '<top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom>'+
+      '</border>'+
+      '<border>'+   // 2: thick top + thick left (B1)
+        '<left style="thick"><color auto="1"/></left><right style="thin"><color auto="1"/></right>'+
+        '<top style="thick"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom>'+
+      '</border>'+
+      '<border>'+   // 3: thick top (C1,D1)
+        '<left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right>'+
+        '<top style="thick"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom>'+
+      '</border>'+
+      '<border>'+   // 4: thick top + thick right (E1)
+        '<left style="thin"><color auto="1"/></left><right style="thick"><color auto="1"/></right>'+
+        '<top style="thick"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom>'+
+      '</border>'+
+      '<border>'+   // 5: thick left (B2,B3,B4)
+        '<left style="thick"><color auto="1"/></left><right style="thin"><color auto="1"/></right>'+
+        '<top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom>'+
+      '</border>'+
+      '<border>'+   // 6: thick right (E2,E3,E4)
+        '<left style="thin"><color auto="1"/></left><right style="thick"><color auto="1"/></right>'+
+        '<top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom>'+
+      '</border>'+
+      '<border>'+   // 7: thick bottom + thick left (B5)
+        '<left style="thick"><color auto="1"/></left><right style="thin"><color auto="1"/></right>'+
+        '<top style="thin"><color auto="1"/></top><bottom style="thick"><color auto="1"/></bottom>'+
+      '</border>'+
+      '<border>'+   // 8: thick bottom (C5,D5)
+        '<left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right>'+
+        '<top style="thin"><color auto="1"/></top><bottom style="thick"><color auto="1"/></bottom>'+
+      '</border>'+
+      '<border>'+   // 9: thick bottom + thick right (E5)
+        '<left style="thin"><color auto="1"/></left><right style="thick"><color auto="1"/></right>'+
+        '<top style="thin"><color auto="1"/></top><bottom style="thick"><color auto="1"/></bottom>'+
+      '</border>'+
+    '</borders>'+
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+    '<cellXfs count="10">'+
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+   // 0: default
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+  // 1: thin all
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="2" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+  // 2: B1
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="3" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+  // 3: C1,D1
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="4" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+  // 4: E1
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="5" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+  // 5: B2,B3,B4
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="6" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+  // 6: E2,E3,E4
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="7" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+  // 7: B5
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="8" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+  // 8: C5,D5
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="9" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+  // 9: E5
+    '</cellXfs>'+
+    '</styleSheet>';
+
+  // --- xl/worksheets/sheet1.xml ---
+  // s: 1=thin  2=B1(TL) 3=C1/D1 4=E1(TR) 5=B2-4(L) 6=E2-4(R) 7=B5(BL) 8=C5/D5 9=E5(BR)
+  function C(r,s,v){return'<c r="'+r+'" s="'+s+'" t="inlineStr"><is><t>'+esc(v)+'</t></is></c>'}
+  function E(r,s){return'<c r="'+r+'" s="'+s+'"/>'}
+
+  var rows=[];
+  // R1: 升旗(A1,merge A1:A8) | 图书馆 B1(2) C1(3) D1(3) E1(4)
+  rows.push('<row r="1" ht="30">'+C('A1',1,'升旗')+C('B1',2,'图书馆')+C('C1',3,q.c3.lib)+C('D1',3,q.c4.lib)+C('E1',4,q.c5.lib)+'</row>');
+  // R2: A2(合并) | B2(5) C2(1) D2(1) E2(6)
+  rows.push('<row r="2" ht="26">'+E('A2',1)+C('B2',5,'')+C('C2',1,q.c3.flagL)+E('D2',1)+C('E2',6,q.c5.flagL)+'</row>');
+  // R3: A3(合并) | B3(5) C3(1) D3(1) E3(6)
+  rows.push('<row r="3" ht="26">'+E('A3',1)+C('B3',5,'（口令员）')+C('C3',1,q.c3.kouling)+E('D3',1)+C('E3',6,q.c5.kouling)+'</row>');
+  // R4: A4(合并) | B4(5) C4(1) D4(1) E4(6)
+  rows.push('<row r="4" ht="26">'+E('A4',1)+C('B4',5,'')+C('C4',1,q.c3.flagR)+E('D4',1)+C('E4',6,q.c5.flagR)+'</row>');
+  // R5: A5(合并) | B5(7) C5(8) D5(8) E5(9)
+  rows.push('<row r="5" ht="26">'+E('A5',1)+C('B5',7,'')+C('C5',8,q.c3.qishou)+E('D5',8)+C('E5',9,q.c5.qishou)+'</row>');
+  // R6: A6(合并) | 南大门
+  rows.push('<row r="6" ht="26">'+E('A6',1)+C('B6',1,'南大门')+C('C6',1,q.nandamen)+E('D6',1)+E('E6',1)+'</row>');
+  // R7: A7(合并) | 礼服检查
+  rows.push('<row r="7" ht="26">'+E('A7',1)+C('B7',1,'礼服检查')+C('C7',1,q.fc[0])+C('D7',1,q.fc[1])+E('E7',1)+'</row>');
+  // R8: A8(合并) | 内务整理
+  rows.push('<row r="8" ht="26">'+E('A8',1)+C('B8',1,'内务整理')+C('C8',1,q.nw)+E('D8',1)+E('E8',1)+'</row>');
+  // R9: 降旗(A9,merge A9:A10) | 图书馆
+  rows.push('<row r="9" ht="30">'+C('A9',1,'降旗')+C('B9',1,'图书馆')+C('C9',1,q.pmLib[0])+C('D9',1,q.pmLib[1])+C('E9',1,q.pmLib[2])+'</row>');
+  // R10: A10(合并) | 南大门
+  rows.push('<row r="10" ht="26">'+E('A10',1)+C('B10',1,'南大门')+C('C10',1,q.pmGate)+E('D10',1)+E('E10',1)+'</row>');
+
+  var sheetXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+    '<cols><col min="1" max="1" width="9" customWidth="1"/><col min="2" max="5" width="12" customWidth="1"/></cols>'+
+    '<sheetData>'+rows.join('')+'</sheetData>'+
+    '<mergeCells count="2"><mergeCell ref="A1:A8"/><mergeCell ref="A9:A10"/></mergeCells>'+
+    '</worksheet>';
+
+  // ==================== 打包 ZIP ====================
+  var files=[
+    {n:'[Content_Types].xml', d:toB(ctXml)},
+    {n:'_rels/.rels',        d:toB(relXml)},
+    {n:'xl/workbook.xml',    d:toB(wbXml)},
+    {n:'xl/_rels/workbook.xml.rels', d:toB(wbrXml)},
+    {n:'xl/styles.xml',      d:toB(stylesXml)},
+    {n:'xl/worksheets/sheet1.xml', d:toB(sheetXml)}
+  ];
+
+  var parts=[], cds=[], off=0;
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    var h=lfh(f.n,f.d);
+    parts.push(h); off+=h.length;
+    parts.push(f.d); off+=f.d.length;
+  }
+  var cdParts=[], cdSize=0;
+  var lhOff=0;
+  // 重新计算偏移（本地文件头+数据）
+  // 简化：本地文件头在前，然后是数据
+  for(var i=0;i<files.length;i++){
+    var h=lfh(files[i].n,files[i].d);
+    var cd=cde(files[i].n,files[i].d, lhOff);
+    cdParts.push(cd); cdSize+=cd.length;
+    lhOff+=h.length+files[i].d.length;
+  }
+  var cdAll=cat(cdParts);
+  var body=cat(parts);
+  var tail=eocd(files.length, cdSize, body.length);
+  var zip=new Uint8Array(body.length+cdAll.length+tail.length);
+  zip.set(body,0); zip.set(cdAll,body.length); zip.set(tail,body.length+cdAll.length);
+
+  // ==================== 下载 ====================
+  var blob=new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var url=URL.createObjectURL(blob);
+  var fn=dk+'升降旗排班_'+getDS().replace(/[年月]/g,'-').replace('日','')+'.xlsx';
+  var a=document.createElement('a');a.href=url;a.download=fn;a.style.display='none';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url)},300);
+}
+
+pickToday();
+</script>
+</body>
+</html>
