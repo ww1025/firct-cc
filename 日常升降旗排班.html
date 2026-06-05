@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head><meta charset="UTF-8"><title>日常升降旗排班</title>
 <style>
@@ -94,11 +94,12 @@ function genQ(dk){
   function nxtF(){while(fi<females.length){return females[fi++]}return''}
   function nxtG(g){return g==='M'?nxtM():g==='F'?nxtF():''}
 
-  // === 旗组：Row1 = 3人全男 ===
-  var fg=[nxtM(), nxtM(), nxtM()];
+  // === 旗组：Row1 = 3人，50/50 全男或全女 ===
+  var fgIsMale=Math.random()<0.5;
+  var fg=fgIsMale?[nxtM(),nxtM(),nxtM()]:[nxtF(),nxtF(),nxtF()];
 
   // === 护旗队：Rows 2-5，4对8人，男生优先 ===
-  var remM=males.length-3, remF=females.length;
+  var remM=males.length-(fgIsMale?3:0), remF=females.length-(fgIsMale?0:3);
   var pairG=[];
   for(var i=0;i<4;i++){
     if(remM>=2){pairG.push('M');remM-=2}
@@ -146,8 +147,8 @@ function genQ(dk){
   q.pmGate=nxtJ();
   if(q.pmGate&&q.pmGate===q.nandamen)q.pmGate=nxtJ();
 
-  q.fg='M';
-  return{q:q,bz:bz,dk:dk,fg:'M'};
+  q.fg=fgIsMale?'M':'F';
+  return{q:q,bz:bz,dk:dk,fg:fgIsMale?'M':'F'};
 }
 
 // ====== 渲染 ======
@@ -184,7 +185,7 @@ function render(dk){
   h+='</table>';
 
   document.getElementById('resultCard').innerHTML=h;
-  document.getElementById('banzhangNote').textContent='班长：'+r.bz+' | 旗组：全男♂(3人) | 护旗队：4对(同行同性别·男先女后) | 礼服检查2人+内务1人 ← 升旗队列 | 降旗4人 ← 本班';
+  document.getElementById('banzhangNote').textContent='班长：'+r.bz+' | 旗组：'+(r.fg==='M'?'全男♂':'全女♀')+'(3人) | 护旗队：4对(同行同性别·男先女后) | 礼服检查2人+内务1人 ← 升旗队列 | 降旗4人 ← 本班';
 }
 
 function getDS(){var n=new Date();return n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日'}
