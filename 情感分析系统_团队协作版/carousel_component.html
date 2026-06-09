@@ -1,0 +1,236 @@
+<div class="inside-out-carousel">
+  <style>
+    .inside-out-carousel * { margin:0; padding:0; box-sizing:border-box; }
+    .inside-out-carousel {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      font-family: 'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    /* ── 幻灯片容器 ── */
+    .inside-out-carousel .cio-slides { position:relative; width:100%; height:420px; }
+    .inside-out-carousel .cio-slide {
+      position:absolute; inset:0;
+      opacity:0; transition:opacity .5s ease;
+      pointer-events:none;
+      border-radius:16px; overflow:hidden;
+      display:flex; align-items:center; gap:20px; padding:30px 40px;
+    }
+    .inside-out-carousel .cio-slide.active { opacity:1; pointer-events:auto; z-index:2; }
+    /* ── 角色图片区 ── */
+    .inside-out-carousel .cio-char-img {
+      flex:0 0 300px; height:360px;
+      background:center/contain no-repeat;
+      border-radius:20px;
+      filter:drop-shadow(0 8px 32px rgba(0,0,0,.35));
+      animation:cio-float 3s ease-in-out infinite;
+    }
+    @keyframes cio-float {
+      0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)}
+    }
+    /* ── 信息卡片 ── */
+    .inside-out-carousel .cio-info-card {
+      flex:1; min-width:0;
+      background:rgba(255,255,255,0.12);
+      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+      border:2px dashed rgba(255,255,255,0.35);
+      border-radius:20px; padding:28px 32px;
+      box-shadow:0 8px 40px rgba(0,0,0,.25);
+    }
+    .inside-out-carousel .cio-name-cn {
+      font-size:56px; font-weight:900;
+      color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.4);
+      line-height:1; margin-bottom:2px;
+    }
+    .inside-out-carousel .cio-name-en {
+      font-size:20px; font-weight:700;
+      color:rgba(255,255,255,0.7);
+      letter-spacing:2px; margin-bottom:16px;
+    }
+    .inside-out-carousel .cio-section { margin-bottom:10px; }
+    .inside-out-carousel .cio-section-title {
+      font-size:13px; font-weight:800;
+      color:rgba(255,255,255,0.85);
+      margin-bottom:4px; letter-spacing:1px;
+    }
+    .inside-out-carousel .cio-section-text {
+      font-size:13px; color:rgba(255,255,255,0.75);
+      line-height:1.75;
+    }
+    /* ── 左右箭头 ── */
+    .inside-out-carousel .cio-arrow {
+      position:absolute; top:50%; transform:translateY(-50%); z-index:10;
+      width:44px; height:44px; border-radius:50%;
+      background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+      color:#fff; font-size:20px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:all .3s; backdrop-filter:blur(10px);
+    }
+    .inside-out-carousel .cio-arrow:hover { background:rgba(255,255,255,0.25); }
+    .inside-out-carousel .cio-arrow-prev { left:12px; }
+    .inside-out-carousel .cio-arrow-next { right:12px; }
+    /* ── 指示器 ── */
+    .inside-out-carousel .cio-dots {
+      display:flex; justify-content:center; gap:10px;
+      margin-top:16px;
+    }
+    .inside-out-carousel .cio-dot {
+      width:11px; height:11px; border-radius:50%;
+      border:none; cursor:pointer;
+      background:rgba(255,255,255,0.25);
+      transition:all .3s;
+    }
+    .inside-out-carousel .cio-dot.active { transform:scale(1.35); }
+    /* ── 响应式 ── */
+    @media (max-width:768px) {
+      .inside-out-carousel .cio-slides { height:500px; }
+      .inside-out-carousel .cio-slide { flex-direction:column; padding:20px; gap:8px; }
+      .inside-out-carousel .cio-char-img { flex:0 0 180px; width:180px; height:180px; }
+      .inside-out-carousel .cio-info-card { padding:16px 18px; }
+      .inside-out-carousel .cio-name-cn { font-size:36px; }
+    }
+  </style>
+
+  <!-- ═══════════ 幻灯片 ═══════════ -->
+  <div class="cio-slides" id="cioSlides">
+    <!-- Slide 0: 乐乐 -->
+    <div class="cio-slide active" style="background:linear-gradient(135deg, #F9D56E 0%, #F5C04C 30%, #E8A820 100%);">
+      <div class="cio-char-img" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 280%22%3E%3Ccircle cx=%22100%22 cy=%2290%22 r=%2255%22 fill=%22%234A90D9%22/%3E%3Ccircle cx=%22100%22 cy=%22130%22 r=%2245%22 fill=%22%239DC944%22/%3E%3Ccircle cx=%2275%22 cy=%2285%22 r=%226%22 fill=%22white%22/%3E%3Ccircle cx=%22125%22 cy=%2285%22 r=%226%22 fill=%22white%22/%3E%3Ccircle cx=%2275%22 cy=%2285%22 r=%223%22 fill=%22%23333%22/%3E%3Ccircle cx=%22125%22 cy=%2285%22 r=%223%22 fill=%22%23333%22/%3E%3Cpath d=%22M70 105 Q100 125 130 105%22 stroke=%22%23333%22 stroke-width=%223%22 fill=%22none%22/%3E%3Ccircle cx=%22100%22 cy=%2210%22 r=%2220%22 fill=%22%23FFD700%22/%3E%3Ctext x=%22100%22 y=%22260%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2214%22%3E⭐ 快乐记忆球%3C/text%3E%3C/svg%3E');"></div>
+      <div class="cio-info-card">
+        <div class="cio-name-cn">乐乐</div>
+        <div class="cio-name-en">Joy</div>
+        <div class="cio-section"><div class="cio-section-title">🧬 来源</div><div class="cio-section-text">多巴胺 —— 奖赏激素<br>内啡肽 —— 天然止痛剂<br>催产素 —— 爱的荷尔蒙<br>血清素 —— 情绪稳定剂</div></div>
+        <div class="cio-section"><div class="cio-section-title">😊 面部表现</div><div class="cio-section-text">嘴角朝外朝上扩展，眼角出现笑纹</div></div>
+        <div class="cio-section"><div class="cio-section-title">🎯 主要作用</div><div class="cio-section-text">使身体得到正常休息，为目标和未来储备热情与力量</div></div>
+      </div>
+    </div>
+
+    <!-- Slide 1: 忧忧 -->
+    <div class="cio-slide" style="background:linear-gradient(135deg, #6B9FD4 0%, #4A7FB5 30%, #2D5F95 100%);">
+      <div class="cio-char-img" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 280%22%3E%3Ccircle cx=%22100%22 cy=%2290%22 r=%2255%22 fill=%22%234A7FB5%22/%3E%3Ccircle cx=%22100%22 cy=%22130%22 r=%2245%22 fill=%22white%22/%3E%3Ccircle cx=%2275%22 cy=%2285%22 r=%228%22 fill=%22%23333%22/%3E%3Ccircle cx=%22125%22 cy=%2285%22 r=%228%22 fill=%22%23333%22/%3E%3Ccircle cx=%2275%22 cy=%2288%22 r=%223%22 fill=%22white%22/%3E%3Ccircle cx=%22125%22 cy=%2288%22 r=%223%22 fill=%22white%22/%3E%3Cpath d=%22M65 103 Q100 90 135 103%22 stroke=%22%23333%22 stroke-width=%222.5%22 fill=%22none%22/%3E%3Crect x=%2285%22 y=%22140%22 rx=%224%22 width=%2230%22 height=%2220%22 fill=%22%23333%22/%3E%3Ctext x=%22100%22 y=%22260%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2213%22%3E💧 忧伤的泪滴%3C/text%3E%3C/svg%3E');"></div>
+      <div class="cio-info-card">
+        <div class="cio-name-cn">忧忧</div>
+        <div class="cio-name-en">Sadness</div>
+        <div class="cio-section"><div class="cio-section-title">🧬 来源</div><div class="cio-section-text">面对损失、无力维持或实现目标</div></div>
+        <div class="cio-section"><div class="cio-section-title">😢 面部表现</div><div class="cio-section-text">目光无神，眼皮低垂，唇角下撇；内眉倾斜</div></div>
+        <div class="cio-section"><div class="cio-section-title">🎯 主要作用</div><div class="cio-section-text">促进思维的改变，帮助人适应环境</div></div>
+      </div>
+    </div>
+
+    <!-- Slide 2: 怒怒 -->
+    <div class="cio-slide" style="background:linear-gradient(135deg, #E8543C 0%, #C94030 30%, #A82820 100%);">
+      <div class="cio-char-img" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 280%22%3E%3Crect x=%2260%22 y=%2250%22 rx=%228%22 width=%2280%22 height=%22100%22 fill=%22%23E8543C%22/%3E%3Crect x=%2270%22 y=%2230%22 rx=%224%22 width=%2260%22 height=%2230%22 fill=%22%23E8543C%22/%3E%3Ccircle cx=%2280%22 cy=%2285%22 r=%226%22 fill=%22white%22/%3E%3Ccircle cx=%22120%22 cy=%2285%22 r=%226%22 fill=%22white%22/%3E%3Ccircle cx=%2282%22 cy=%2287%22 r=%222.5%22 fill=%22%23333%22/%3E%3Ccircle cx=%22118%22 cy=%2287%22 r=%222.5%22 fill=%22%23333%22/%3E%3Cline x1=%2265%22 y1=%2275%22 x2=%2295%22 y2=%2280%22 stroke=%22%23333%22 stroke-width=%223%22/%3E%3Cline x1=%22135%22 y1=%2275%22 x2=%22105%22 y2=%2280%22 stroke=%22%23333%22 stroke-width=%223%22/%3E%3Crect x=%2285%22 y=%22108%22 rx=%222%22 width=%2230%22 height=%2212%22 fill=%22%23333%22/%3E%3Ctext x=%22100%22 y=%22260%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2214%22%3E🔥 怒火中烧%3C/text%3E%3C/svg%3E');"></div>
+      <div class="cio-info-card">
+        <div class="cio-name-cn">怒怒</div>
+        <div class="cio-name-en">Anger</div>
+        <div class="cio-section"><div class="cio-section-title">🧬 来源</div><div class="cio-section-text">「自认为」遭到不公平对待、目标被阻挡、边界被侵犯</div></div>
+        <div class="cio-section"><div class="cio-section-title">😡 面部表现</div><div class="cio-section-text">眉毛下沉并紧锁，双眼怒视，嘴巴紧闭露出牙齿</div></div>
+        <div class="cio-section"><div class="cio-section-title">🎯 主要作用</div><div class="cio-section-text">调动能量移除障碍，捍卫边界，向外界发出"停止"信号</div></div>
+      </div>
+    </div>
+
+    <!-- Slide 3: 怕怕 -->
+    <div class="cio-slide" style="background:linear-gradient(135deg, #B8A0D4 0%, #9578B8 30%, #6E4E98 100%);">
+      <div class="cio-char-img" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 280%22%3E%3Crect x=%2270%22 y=%2240%22 rx=%2212%22 width=%2260%22 height=%22110%22 fill=%22%23B8A0D4%22/%3E%3Crect x=%2280%22 y=%2230%22 rx=%226%22 width=%2240%22 height=%2225%22 fill=%22%23B8A0D4%22/%3E%3Ccircle cx=%2282%22 cy=%2280%22 r=%229%22 fill=%22white%22/%3E%3Ccircle cx=%22118%22 cy=%2280%22 r=%229%22 fill=%22white%22/%3E%3Ccircle cx=%2284%22 cy=%2278%22 r=%223.5%22 fill=%22%23333%22/%3E%3Ccircle cx=%22116%22 cy=%2278%22 r=%223.5%22 fill=%22%23333%22/%3E%3Cpath d=%22M65 65 Q80 58 95 65%22 stroke=%22%23333%22 stroke-width=%222.5%22 fill=%22none%22/%3E%3Cpath d=%22M105 65 Q120 58 135 65%22 stroke=%22%23333%22 stroke-width=%222.5%22 fill=%22none%22/%3E%3Cellipse cx=%22100%22 cy=%22100%22 rx=%226%22 ry=%2210%22 fill=%22%23333%22/%3E%3Ctext x=%22100%22 y=%22260%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2214%22%3E⚡ 瑟瑟发抖%3C/text%3E%3C/svg%3E');"></div>
+      <div class="cio-info-card">
+        <div class="cio-name-cn">怕怕</div>
+        <div class="cio-name-en">Fear</div>
+        <div class="cio-section"><div class="cio-section-title">🧬 来源</div><div class="cio-section-text">「自认为」无法克服、无法掌控、无法知晓的事物或环境</div></div>
+        <div class="cio-section"><div class="cio-section-title">😨 面部表现</div><div class="cio-section-text">面部因血液流失而发白，瞳孔放大，可能僵在原地</div></div>
+        <div class="cio-section"><div class="cio-section-title">🎯 主要作用</div><div class="cio-section-text">集中精力分析威胁，有效评估行动方案，为行动做好准备</div></div>
+      </div>
+    </div>
+
+    <!-- Slide 4: 厌厌 -->
+    <div class="cio-slide" style="background:linear-gradient(135deg, #84C47C 0%, #5DAE52 30%, #3D8E38 100%);">
+      <div class="cio-char-img" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 280%22%3E%3Ccircle cx=%22100%22 cy=%2290%22 r=%2250%22 fill=%22%2384C47C%22/%3E%3Ccircle cx=%22100%22 cy=%22130%22 r=%2240%22 fill=%22%235DAE52%22/%3E%3Ccircle cx=%2275%22 cy=%2285%22 r=%227%22 fill=%22white%22/%3E%3Ccircle cx=%22125%22 cy=%2285%22 r=%227%22 fill=%22white%22/%3E%3Ccircle cx=%2277%22 cy=%2288%22 r=%223%22 fill=%22%23333%22/%3E%3Ccircle cx=%22123%22 cy=%2288%22 r=%223%22 fill=%22%23333%22/%3E%3Cpath d=%22M60 78 Q80 72 90 78%22 stroke=%22%23333%22 stroke-width=%222.5%22 fill=%22none%22/%3E%3Cpath d=%22M110 78 Q120 72 140 78%22 stroke=%22%23333%22 stroke-width=%222.5%22 fill=%22none%22/%3E%3Cpath d=%22M80 108 Q100 98 120 108%22 stroke=%22%23333%22 stroke-width=%222%22 fill=%22none%22/%3E%3Ctext x=%22100%22 y=%22260%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2214%22%3E🥦 坚决不要！%3C/text%3E%3C/svg%3E');"></div>
+      <div class="cio-info-card">
+        <div class="cio-name-cn">厌厌</div>
+        <div class="cio-name-en">Disgust</div>
+        <div class="cio-section"><div class="cio-section-title">🧬 来源</div><div class="cio-section-text">令人不愉悦、反感的事物</div></div>
+        <div class="cio-section"><div class="cio-section-title">😒 面部表现</div><div class="cio-section-text">上唇撇向一边，鼻头微微皱起</div></div>
+        <div class="cio-section"><div class="cio-section-title">🎯 主要作用</div><div class="cio-section-text">逃避或排斥负面刺激——例如阻止你摄入可能生病的食物</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 箭头 ═══════════ -->
+  <button class="cio-arrow cio-arrow-prev" onclick="cioPrev()">〈</button>
+  <button class="cio-arrow cio-arrow-next" onclick="cioNext()">〉</button>
+
+  <!-- ═══════════ 指示器 ═══════════ -->
+  <div class="cio-dots" id="cioDots"></div>
+
+  <script>
+    (function(){
+      var slides = document.querySelectorAll('.inside-out-carousel .cio-slide');
+      var dotsContainer = document.getElementById('cioDots');
+      var current = 0;
+      var timer = null;
+      var total = slides.length;
+
+      // 建指示器
+      slides.forEach(function(_, i){
+        var d = document.createElement('button');
+        d.className = 'cio-dot' + (i===0 ? ' active' : '');
+        d.onclick = function(){ cioGo(i); };
+        dotsContainer.appendChild(d);
+      });
+      updateDots();
+
+      function updateDots(){
+        var dots = document.querySelectorAll('.inside-out-carousel .cio-dot');
+        dots.forEach(function(d, i){
+          d.classList.toggle('active', i===current);
+          // 颜色跟随当前 slide 背景
+          var bg = window.getComputedStyle(slides[current]).background;
+          d.style.background = i===current ? getGradientMid(bg) : 'rgba(255,255,255,0.25)';
+        });
+      }
+
+      function getGradientMid(cssBg){
+        // 简单取渐变中间色
+        if(cssBg.indexOf('rgb')>=0){
+          var m = cssBg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+          if(m) return 'rgb('+m[1]+','+m[2]+','+m[3]+')';
+        }
+        return '#FFD700';
+      }
+
+      window.cioGo = function(idx){
+        if(idx === current) return;
+        slides[current].classList.remove('active');
+        slides[idx].classList.add('active');
+        current = idx;
+        updateDots();
+        resetTimer();
+      };
+
+      window.cioPrev = function(){ cioGo((current-1+total)%total); };
+      window.cioNext = function(){ cioGo((current+1)%total); };
+
+      function autoPlay(){ timer = setInterval(function(){ cioNext(); }, 4000); }
+      function resetTimer(){ clearInterval(timer); autoPlay(); }
+
+      // 悬停暂停
+      var wrap = document.querySelector('.inside-out-carousel');
+      wrap.addEventListener('mouseenter', function(){ clearInterval(timer); });
+      wrap.addEventListener('mouseleave', function(){ autoPlay(); });
+
+      // 触摸滑动
+      var touchStartX = 0;
+      wrap.addEventListener('touchstart', function(e){ touchStartX = e.touches[0].clientX; });
+      wrap.addEventListener('touchend', function(e){
+        var dx = e.changedTouches[0].clientX - touchStartX;
+        if(Math.abs(dx) > 50){ if(dx<0) cioNext(); else cioPrev(); }
+      });
+
+      autoPlay();
+    })();
+  </script>
+</div>

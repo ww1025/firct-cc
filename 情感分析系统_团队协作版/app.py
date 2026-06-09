@@ -161,52 +161,11 @@ EXAMPLES = [
 ]
 
 # ==========================================
-# 组件一：头脑特工队精美滚动轮播图
+# 组件一：头脑特工队主题轮播图（5角色沉浸式设计）
 # ==========================================
-carousel_html = """
-<!DOCTYPE html>
-<html>
-<head>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @keyframes slide { 0%, 20% { transform: translateX(0); } 25%, 45% { transform: translateX(-100%); } 50%, 70% { transform: translateX(-200%); } 75%, 100% { transform: translateX(0); } }
-        .slider-inner { display: flex; width: 300%; animation: slide 14s infinite ease-in-out; }
-        .slide-page { width: 100%; flex-shrink: 0; }
-    </style>
-</head>
-<body class="bg-[#0b0f19] m-0 p-0 overflow-hidden">
-    <div class="w-full max-w-6xl mx-auto rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl relative bg-slate-950">
-        <div class="slider-inner">
-            <div class="slide-page bg-gradient-to-r from-purple-900/30 via-purple-950/40 to-indigo-950/30 p-8 flex flex-col md:flex-row items-center justify-between min-h-[200px]">
-                <div class="space-y-2 max-w-xl">
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30 font-medium">六分类情绪指标 · 怕怕</span>
-                    <h1 class="text-2xl font-bold text-white tracking-wide">怕怕 <span class="text-sm font-normal text-slate-400 font-mono">Fear</span></h1>
-                    <p class="text-xs text-slate-300 leading-relaxed">精准捕捉文本语境中由于网络暴力、人身攻击引发的防御性心理变化，用量化数据构建社区秩序的安全城防。</p>
-                </div>
-                <div class="w-24 h-24 rounded-full border border-purple-500/30 bg-purple-950/30 flex items-center justify-center text-4xl shadow-xl">🧠</div>
-            </div>
-            <div class="slide-page bg-gradient-to-r from-pink-900/30 via-rose-950/40 to-purple-950/30 p-8 flex flex-col md:flex-row items-center justify-between min-h-[200px]">
-                <div class="space-y-2 max-w-xl">
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] bg-pink-500/20 text-pink-400 border border-pink-500/30 font-medium">六分类情绪指标 · 尴尬</span>
-                    <h1 class="text-2xl font-bold text-white tracking-wide">尴尬 <span class="text-sm font-normal text-slate-400 font-mono">Embarrassment</span></h1>
-                    <p class="text-xs text-slate-300 leading-relaxed">攻克传统情感分析中"阴阳怪气"与反讽文本的误判死穴，深度解析中文字词序中的隐蔽社会心理负面倾向。</p>
-                </div>
-                <div class="w-24 h-24 rounded-full border border-pink-500/30 bg-pink-950/30 flex items-center justify-center text-4xl shadow-xl">😳</div>
-            </div>
-            <div class="slide-page bg-gradient-to-r from-blue-900/30 via-slate-900/50 to-cyan-950/30 p-8 flex flex-col md:flex-row items-center justify-between min-h-[200px]">
-                <div class="space-y-2 max-w-xl">
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-medium">六分类情绪指标 · 丧丧</span>
-                    <h1 class="text-2xl font-bold text-white tracking-wide">丧丧 <span class="text-sm font-normal text-slate-400 font-mono">Ennui</span></h1>
-                    <p class="text-xs text-slate-300 leading-relaxed">实时监测高压状态下社会群体的低情感能量溢出。针对高校匿名社区进行早期危机发掘，赋能心理危机干预。</p>
-                </div>
-                <div class="w-24 h-24 rounded-full border border-blue-500/30 bg-blue-950/30 flex items-center justify-center text-4xl shadow-xl">🦥</div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-"""
-components.html(carousel_html, height=210, scrolling=False)
+with open("carousel_component.html", "r", encoding="utf-8") as f:
+    carousel_html = f.read()
+components.html(carousel_html, height=500, scrolling=False)
 
 # ==========================================
 # 组件二：大作业原生态情感分析引擎
