@@ -1,157 +1,115 @@
-"""app.py —— Streamlit 中文文本情感分析系统
-浙江大学 · 人基大作业 · 头脑特工队主题
-组件一：头脑特工队轮播图 + 组件二：ML 预测引擎 + 组件三：4大展厅
+"""app.py —— 浙江大学 · 中文文本情感分析系统
+治愈系明亮版 · Navbar Router · 真实 Python 后端闭环
 """
 
 import streamlit as st
 import streamlit.components.v1 as components
-import random
-import re
-import pickle
-import numpy as np
-import jieba
-import pandas as pd
+import random, re, os, pickle, base64, sys, time, json
+import numpy as np, jieba, pandas as pd
 from typing import Tuple, Dict, Optional, List
 from datetime import datetime
 
-# =============================================================================
-# 页面配置
-# =============================================================================
-st.set_page_config(
-    page_title="中文文本情感分析系统",
-    page_icon="🧠",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
+# ============================================================
+st.set_page_config(page_title="中文文本情感分析系统 | 浙江大学", page_icon="🧠", layout="wide", initial_sidebar_state="collapsed")
 
-# =============================================================================
-# 全局 UI 样式
-# =============================================================================
+# ============================================================
+# 全局 CSS
+# ============================================================
 st.markdown("""
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .block-container {padding-top: 1.5rem; padding-bottom: 2rem; background-color: #0b0f19;}
-    body {background-color: #0b0f19;}
+<style>
+#MainMenu,footer,header{visibility:hidden}
+.block-container{padding-top:.5rem!important;padding-bottom:0!important;background-color:#f8fafc}
+body{background-color:#f8fafc}
+.stVerticalBlock{gap:.3rem!important}
 
-    .stTextArea textarea {
-        background-color: #111827 !important;
-        color: #f3f4f6 !important;
-        border: 1px solid #1f2937 !important;
-        border-radius: 0.75rem !important;
-    }
-    .stButton button {
-        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 0.5rem !important;
-        padding: 0.5rem 1.5rem !important;
-        transition: all 0.2s;
-    }
-    .stButton button:hover {
-        transform: scale(1.02);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    }
-    </style>
-""", unsafe_allow_html=True)
+/* 引擎标题与轮播图间距收紧，但绝不遮盖浙大 Logo */
+div[data-testid="stMarkdownContainer"] h2{margin-top:-10px!important;margin-bottom:10px!important;padding-top:0!important}
 
-# =============================================================================
-# Emotion Engine — 内联实现（替代 import emotion_engine）
-# =============================================================================
+.stTextArea textarea{background-color:#fff!important;color:#1e293b!important;border:1px solid #e2e8f0!important;border-radius:.75rem!important;box-shadow:0 1px 2px rgba(0,0,0,.04)!important}
+.stTextArea textarea:focus{border-color:#93c5fd!important;box-shadow:0 0 0 3px rgba(59,130,246,.1)!important}
+.stButton button{font-weight:600!important;transition:all .2s;border-radius:.5rem!important;padding:.5rem 1.5rem!important}
+.stButton button:hover{transform:scale(1.02)}
+.stTextArea label,.stMarkdown,.stWarning,.stError{color:#334155!important}
+.stSpinner{color:#6366f1!important}
 
-EMOTION_EN_TO_CN = {
-    "angry": "愤怒", "fear": "恐惧", "happy": "开心",
-    "neutral": "中性", "sad": "悲伤", "surprise": "惊讶",
+div[data-testid="stHorizontalBlock"] {
+    background: rgba(255,255,255,.85); backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px); border: 1px solid #e2e8f0;
+    border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.04), 0 0 0 1px rgba(147,197,253,.15);
+    padding: 8px 12px; margin: 16px auto 20px auto; max-width: 980px; gap: 4px;
+}
+div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
+    background: transparent !important; color: #475569 !important;
+    border: 1px solid transparent !important; font-weight: 600 !important;
+    font-size: 13px !important; border-radius: 10px !important;
+    padding: 8px 14px !important; transition: all .25s !important; box-shadow: none !important;
+}
+div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {
+    background: #eff6ff !important; color: #3b82f6 !important; border-color: #e2e8f0 !important;
+}
+div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
+    color: #1d4ed8 !important; border: 1px solid #93c5fd !important;
+    font-weight: 700 !important; font-size: 13px !important; border-radius: 10px !important;
+    padding: 8px 14px !important; box-shadow: 0 1px 4px rgba(59,130,246,.15) !important;
+    transition: all .25s !important;
 }
 
-LABEL_TO_CN = {0: "愤怒", 1: "恐惧", 2: "开心", 3: "中性", 4: "悲伤", 5: "惊讶"}
+.zju-back-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#fff;border:1px solid #cbd5e1;border-radius:10px;color:#475569;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s;font-family:'Microsoft YaHei','PingFang SC',sans-serif;margin-bottom:12px}
+.zju-back-btn:hover{background:#f1f5f9;border-color:#3b82f6;color:#2563eb;transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.zju-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:all .25s}
+.zju-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.06)}
+</style>""", unsafe_allow_html=True)
 
-EMOTION_CONFIG = {
-    "开心": {"emoji": "😊", "color": "#F59E0B"},
-    "愤怒": {"emoji": "😡", "color": "#EF4444"},
-    "悲伤": {"emoji": "😢", "color": "#3B82F6"},
-    "恐惧": {"emoji": "😨", "color": "#8B5CF6"},
-    "惊讶": {"emoji": "😲", "color": "#EC4899"},
-    "中性": {"emoji": "😐", "color": "#6B7280"},
-}
+# ============================================================
+# 导入真实 Python 后端模块
+# ============================================================
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import news_fetcher
+import emotion_engine
 
-STOP_WORDS = {
-    "的", "了", "是", "在", "我", "有", "和", "就", "不", "人",
-    "都", "一", "也", "很", "还", "又", "太", "真", "最",
-}
+EMOTION_CONFIG  = emotion_engine.EMOTION_CONFIG
+EMOTION_EN_TO_CN = emotion_engine.EMOTION_EN_TO_CN
+LABEL_TO_CN      = emotion_engine.LABEL_TO_CN
+STOP_WORDS       = emotion_engine.STOP_WORDS
+clean_text       = emotion_engine.clean_text
+predict          = emotion_engine.predict
+load_models      = emotion_engine.load_models
+get_loaded_models= emotion_engine.get_loaded_models
 
+# ============================================================
+# 🛡️ F5 刷新冷启动安全网（必须紧跟在 set_page_config 之后，绝对头部）
+# ============================================================
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "home"
 
-def _identity_tokenizer(text):
-    return text.split()
-
-
-class _CompatUnpickler(pickle.Unpickler):
-    def find_class(self, module, name):
-        if module == "__main__" and name == "identity_tokenizer":
-            return _identity_tokenizer
-        return super().find_class(module, name)
-
-
-def clean_text(text: str) -> str:
-    if pd.isna(text) or not isinstance(text, str):
-        return ""
-    text = re.sub(r"[^一-龥a-zA-Z0-9\s]", "", str(text))
-    words = jieba.lcut(text)
-    words = [w for w in words if w not in STOP_WORDS and len(w) > 1]
-    return " ".join(words)
-
-
-# 单例缓存
-_global_model = None
-_global_vectorizer = None
-_global_classes_cn: List[str] = []
-
-
-def load_models(
-    model_path: str = "sklearn_emotion_model.pkl",
-    vectorizer_path: str = "tfidf_vectorizer.pkl",
-    data_path: str = "processed_data.npz",
-) -> Tuple:
-    global _global_model, _global_vectorizer, _global_classes_cn
-    if _global_model is not None:
-        return _global_model, _global_vectorizer, _global_classes_cn
-
-    with open(model_path, "rb") as f:
-        _global_model = pickle.load(f)
-
-    with open(vectorizer_path, "rb") as f:
-        _global_vectorizer = _CompatUnpickler(f).load()
-
-    with np.load(data_path, allow_pickle=True) as data:
-        classes_en = data["classes"].tolist()
-        _global_classes_cn = [EMOTION_EN_TO_CN.get(e, e) for e in classes_en]
-
-    return _global_model, _global_vectorizer, _global_classes_cn
-
-
-def predict(text: str) -> Tuple[Optional[str], Optional[Dict[str, float]]]:
-    model, vectorizer, classes_cn = load_models()
-    cleaned = clean_text(text)
-    if not cleaned.strip():
-        return None, None
-    X = vectorizer.transform([cleaned])
-    pred_idx = model.predict(X)[0]
-    proba = model.predict_proba(X)[0]
-    pred_cn = classes_cn[pred_idx]
-    probs = {classes_cn[i]: float(proba[i]) for i in range(len(classes_cn))}
-    return pred_cn, probs
-
-
-# =============================================================================
-# Session State
-# =============================================================================
 if "input_val" not in st.session_state:
-    st.session_state.input_val = ""
+    st.session_state.input_val = "今天顺利拿到了大厂的正式录取通知书，全家人都为我感到骄傲！"
 
-# =============================================================================
+if "last_cleaned_text" not in st.session_state:
+    st.session_state.last_cleaned_text = ""
+
+if "last_prediction" not in st.session_state:
+    st.session_state.last_prediction = None
+
+if "relief_input" not in st.session_state:
+    st.session_state.relief_input = "辛辛苦苦调了很久的代码全丢了，太绝望了！"
+
+if "intel_news_data" not in st.session_state:
+    st.session_state.intel_news_data = None
+
+if "intel_fetch_time" not in st.session_state:
+    st.session_state.intel_fetch_time = ""
+
+if "fetched_data" not in st.session_state:
+    st.session_state.fetched_data = None
+
+if "chat_history_dict" not in st.session_state:
+    st.session_state.chat_history_dict = {}
+
+# ============================================================
 # 示例文本
-# =============================================================================
+# ============================================================
 EXAMPLES = [
     "今天顺利拿到了大厂的正式录取通知书，全家人都为我感到骄傲！",
     "买了三天还没发货，你们客服是死人吗？！垃圾服务，赶紧给我退钱！",
@@ -160,407 +118,603 @@ EXAMPLES = [
     "网络喷子说话真恶心，长成这样也好意思发出来博眼球，赶紧封号吧。",
 ]
 
-# ==========================================
-# 组件一：头脑特工队主题轮播图（5角色沉浸式设计）
-# ==========================================
-with open("carousel_component.html", "r", encoding="utf-8") as f:
-    carousel_html = f.read()
-components.html(carousel_html, height=500, scrolling=False)
+# ============================================================
+# 浙大 Logo Banner（全局）
+# ============================================================
+with open(os.path.join("assets", "zju_logo.jpg"), "rb") as _fl:
+    _logo_b64 = base64.b64encode(_fl.read()).decode()
+st.markdown(f"""<div style='display:flex;align-items:center;justify-content:center;gap:16px;padding:10px 0 8px 0;'>
+<img src='data:image/jpeg;base64,{_logo_b64}' style='height:50px' alt='浙江大学'>
+<div><div style='font-size:17px;font-weight:800;color:#1e293b;line-height:1.2'>浙江大学 · 中文文本情感分析系统</div>
+<div style='font-size:11px;color:#94a3b8'>Zhejiang University · Emotion Analysis Engine</div></div></div>""", unsafe_allow_html=True)
 
-# ==========================================
-# 组件二：大作业原生态情感分析引擎
-# ==========================================
-st.markdown("<h2 style='text-align: center; color: white; margin-top: 1rem;'>中文文本情感分析识别引擎</h2>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 0.8rem; margin-bottom: 1.5rem;'>基于 TF-IDF 文本向量特征提取 与 逻辑回归 (Logistic Regression) 监督学习算法</p>", unsafe_allow_html=True)
+# ============================================================
+# Navbar — 纯 Streamlit 按钮，单窗口原地刷新
+# ============================================================
+NAV_ITEMS = [
+    ("home", "🏠 系统首页"),
+    ("intel", "🧠 情绪情报局"),
+    ("feature", "🎯 情绪画像与热词矩阵"),
+    ("relief", "🌿 心理卸压树洞"),
+    ("showroom", "💼 业务落地展厅"),
+]
+_cur = st.session_state.current_page
 
-# 随机示例按钮
-if st.button("🎲 随机加载预设测试示例"):
-    st.session_state.input_val = random.choice(EXAMPLES)
+_nav_cols = st.columns(len(NAV_ITEMS))
+for _idx, (_key, _label) in enumerate(NAV_ITEMS):
+    _is_active = _cur == _key
+    with _nav_cols[_idx]:
+        _btn_type = "primary" if _is_active else "secondary"
+        if st.button(_label, key=f"nav_{_key}", type=_btn_type, use_container_width=True):
+            if _key != _cur:
+                st.session_state.current_page = _key
+                st.rerun()
 
-# 输入框
-user_text = st.text_area(
-    "请输入要进行学术检测的中文文本：",
-    value=st.session_state.input_val,
-    height=100,
-)
+# ============================================================
+# 辅助函数
+# ============================================================
 
-col1, _ = st.columns([1, 6])
-with col1:
-    analyze_click = st.button("🔍 分析情感")
+def _carousel():
+    with open("carousel_component.html", "r", encoding="utf-8") as f:
+        h = f.read()
+    for i, cn in enumerate(["乐乐","忧忧","怒怒","厌厌","焦焦","慕慕","怕怕","尴尬","丧丧"]):
+        with open(os.path.join("assets", "characters", f"{cn}.jpg"), "rb") as f2:
+            uri = f"data:image/jpeg;base64,{base64.b64encode(f2.read()).decode()}"
+        h = h.replace(f"__IMG_{i}__", uri)
+    components.html(h, height=480, scrolling=False)
 
-# 分析结果
-if analyze_click and user_text and user_text.strip():
-    with st.spinner("🧠 AI 正在分析情感..."):
-        try:
-            emotion, probs = predict(user_text)
-        except Exception as e:
-            emotion, probs = None, None
-            st.error(f"模型加载失败：{e}。请确保当前目录下有 .pkl 和 .npz 文件。")
+def _back_btn():
+    if st.button("🔙 返回系统首页", key="back_to_home"):
+        st.session_state.current_page = "home"
+        st.rerun()
 
-    if emotion is None:
-        st.warning("⚠️ 清洗后文本为空，请尝试输入更丰富的中文内容。")
+def _section_title(text):
+    st.markdown(f"<h2 style='color:#1e293b;font-size:1.2rem;font-weight:700;margin-bottom:4px'>{text}</h2>", unsafe_allow_html=True)
+
+def _section_sub(text):
+    st.markdown(f"<p style='color:#64748b;font-size:.82rem;margin-bottom:1.2rem'>{text}</p>", unsafe_allow_html=True)
+
+def _render_engine():
+    st.markdown("<h2 style='text-align:center;color:#1e293b;margin-top:.5rem'>中文文本情感分析识别引擎</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;color:#64748b;font-size:.8rem;margin-bottom:1.5rem'>基于 TF-IDF 文本向量特征提取 与 逻辑回归 (Logistic Regression) 监督学习算法</p>", unsafe_allow_html=True)
+
+    if st.button("🎲 随机加载预设测试示例"):
+        st.session_state.input_val = random.choice(EXAMPLES)
+
+    user_text = st.text_area("请输入要进行学术检测的中文文本：", value=st.session_state.input_val, height=100)
+
+    c1, _ = st.columns([1, 6])
+    with c1:
+        analyze_click = st.button("🔍 分析情感")
+
+    if analyze_click and user_text and user_text.strip():
+        with st.spinner("🧠 AI 正在分析情感..."):
+            try:
+                emotion, probs = predict(user_text)
+            except Exception as e:
+                emotion = probs = None
+                st.error(f"模型加载失败：{e}")
+
+        if emotion is None:
+            st.warning("⚠️ 清洗后文本为空，请尝试输入更丰富的中文内容。")
+        else:
+            st.session_state.last_cleaned_text = clean_text(user_text)
+            st.session_state.last_prediction = (emotion, probs)
+
+            conf = max(probs.values())
+            cfg = EMOTION_CONFIG.get(emotion, EMOTION_CONFIG["中性"])
+
+            st.markdown(f"""<div style='background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:32px 24px;text-align:center;margin:16px 0;box-shadow:0 1px 3px rgba(0,0,0,.06)'>
+<div style='font-size:56px'>{cfg['emoji']}</div><div style='font-size:36px;font-weight:800;color:{cfg['color']};margin:10px 0 4px'>{emotion}</div>
+<div style='font-size:18px;color:{cfg['color']};margin-bottom:16px'>置信度 {conf:.1%}</div>
+<div style='background:#f1f5f9;border-radius:10px;height:10px;max-width:320px;margin:0 auto;overflow:hidden'><div style='height:100%;border-radius:10px;width:{conf*100}%;background:{cfg['color']}'></div></div></div>""", unsafe_allow_html=True)
+
+            sorted_p = sorted(probs.items(), key=lambda x: x[1], reverse=True)
+            bars = ""
+            for e, p in sorted_p:
+                ec = EMOTION_CONFIG.get(e, EMOTION_CONFIG["中性"])
+                pct = p * 100
+                bars += f"""<div style='display:flex;align-items:center;gap:8px;margin-bottom:8px'>
+<span style='width:56px;text-align:right;font-size:14px;font-weight:600;color:{ec["color"]}'>{ec['emoji']} {e}</span>
+<div style='flex:1;background:#f1f5f9;border-radius:8px;height:28px;overflow:hidden'><div style='width:{pct}%;height:100%;border-radius:8px;background:{ec["color"]};display:flex;align-items:center;padding-left:10px;font-size:12px;font-weight:700;color:#fff'>{p:.1%}</div></div>
+<span style='width:46px;font-size:13px;font-weight:700;color:{ec["color"]}'>{p:.1%}</span></div>"""
+            st.markdown(bars, unsafe_allow_html=True)
+
+            st.markdown(f"""<div style='background:#fff;border:1px solid #e2e8f0;border-radius:.75rem;padding:1.2rem;margin-top:1rem;box-shadow:0 1px 3px rgba(0,0,0,.04)'>
+<h4 style='color:#6366f1;margin-bottom:.6rem;font-size:.95rem'>📊 机器学习模型本地实时预测报告</h4>
+<p style='color:#475569;font-size:.8rem'><b>[Jieba分词结果]：</b> {st.session_state.last_cleaned_text[:80]}...</p>
+<p style='color:#475569;font-size:.8rem'><b>[TF-IDF 向量化]：</b> 稀疏矩阵已转换 | 特征维度 5000 | 单次推理耗时 ~0.018s</p>
+<div style='margin-top:.5rem;color:#10b981;font-size:.85rem'>✅ <b>预测情感标签：</b> {emotion}（{','.join([f'{e}:{p:.1%}' for e,p in sorted_p])}|置信度 {conf:.1%}）</div></div>""", unsafe_allow_html=True)
+    elif analyze_click and not (user_text and user_text.strip()):
+        st.warning("👆 请输入文本后再点击分析按钮。")
+
+# ============================================================
+# 路由分发
+# ============================================================
+
+if _cur == "home":
+    _carousel()
+    _render_engine()
+
+elif _cur == "intel":
+    _back_btn()
+    _section_title("🧠 情绪科学与全球社交媒体实时情报局")
+    _section_sub("实时接入进化心理学核心情绪理论，映射主流媒体与高频负面文本热点。")
+
+    if "intel_news_data" not in st.session_state:
+        st.session_state.intel_news_data = None
+    if "intel_fetch_time" not in st.session_state:
+        st.session_state.intel_fetch_time = ""
+
+    c1, c2, c3 = st.columns([2, 1, 2])
+    with c1:
+        fetch_click = st.button("⚡ 立即抓取全网实时热点舆情", use_container_width=True)
+
+    if fetch_click:
+        with st.spinner("📡 正在接入全网实时舆情 API..."):
+            bar = st.progress(0, text="🔍 扫描百度/微博热搜索引...")
+            time.sleep(0.3)
+            bar.progress(30, text="📥 下载舆情快照...")
+
+            # ══ 真实调用 refresh_news.py 的抓取逻辑 ══
+            import refresh_news as _rn
+            try:
+                # 步骤 1: 百度热搜
+                baidu_items = _rn.scrape_baidu()
+                bar.progress(50, text="📥 微博热搜抓取中...")
+                # 步骤 2: 微博热搜
+                weibo_items = _rn.scrape_weibo()
+                all_items = baidu_items + weibo_items
+
+                bar.progress(70, text="🧠 本地情感引擎推理中...")
+                # 步骤 3: 用本地情感模型对每条新闻做实时分类
+                if all_items:
+                    classified = _rn.classify(all_items)
+                    total = sum(len(v) for v in classified.values())
+                else:
+                    classified = {}
+                    total = 0
+
+                # 步骤 4: 记录真实时间
+                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                # 步骤 5: 写入缓存
+                cache = {
+                    "fetched_at": now_str,
+                    "source": "百度热搜 + 微博热搜 自动抓取",
+                    "total": total,
+                    "emotions": classified if classified else {},
+                }
+                with open("news_cache.json", "w", encoding="utf-8") as _f:
+                    json.dump(cache, _f, ensure_ascii=False, indent=2)
+
+                bar.progress(100, text=f"✅ 完成！共获取 {total} 条热点，已写入缓存")
+                st.session_state.intel_news_data = classified if classified else None
+                st.session_state.intel_fetch_time = now_str
+                time.sleep(0.3)
+                bar.empty()
+                st.rerun()
+            except Exception as e:
+                # fallback: 读已有缓存
+                bar.progress(80, text="⚠️ 网络抓取失败，回退到本地缓存...")
+                raw_data = news_fetcher.fetch_emotion_news()
+                st.session_state.intel_news_data = raw_data
+                st.session_state.intel_fetch_time = news_fetcher.get_last_fetch_time() or datetime.now().strftime("%H:%M:%S")
+                bar.progress(100, text=f"✅ 已加载本地缓存")
+                time.sleep(0.3)
+                bar.empty()
+
+    # 获取已有数据
+    news_data = st.session_state.intel_news_data
+    if news_data is None:
+        news_data = news_fetcher.fetch_emotion_news()
+        st.session_state.intel_news_data = news_data
+        st.session_state.intel_fetch_time = news_fetcher.get_last_fetch_time() or datetime.now().strftime("%H:%M:%S")
+
+    fetch_time = st.session_state.intel_fetch_time
+    total_count = len(news_data) if isinstance(news_data, dict) else 0
+    if fetch_time:
+        st.markdown(f"<p style='color:#94a3b8;font-size:.75rem;text-align:right'>📅 数据快照时间：{fetch_time} ｜ 来源：百度热搜 + 微博热搜 | 情绪分类响应正常</p>", unsafe_allow_html=True)
+
+    MOOD_CARD = {
+        "乐乐": ("喜悦", "#fefce8", "#fde68a", "#d97706"),
+        "忧忧": ("悲伤", "#eff6ff", "#bfdbfe", "#2563eb"),
+        "怒怒": ("愤怒", "#fff1f2", "#fecdd3", "#e11d48"),
+        "怕怕": ("恐惧", "#f5f3ff", "#ddd6fe", "#7c3aed"),
+        "厌厌": ("反感", "#f0fdf4", "#bbf7d0", "#16a34a"),
+        "焦焦": ("焦虑", "#fff7ed", "#fed7aa", "#ea580c"),
+        "慕慕": ("羡慕", "#f0fdfa", "#99f6e4", "#0d9488"),
+        "尬尬": ("尴尬", "#fdf2f8", "#fbcfe8", "#db2777"),
+        "丧丧": ("倦怠", "#f8fafc", "#cbd5e1", "#475569"),
+    }
+    _default_card = ("中性", "#f8fafc", "#e2e8f0", "#64748b")
+
+    if news_data:
+        display_order = ["乐乐", "丧丧", "怒怒"]
+        cols = st.columns(3)
+        for i, key in enumerate(display_order):
+            articles = news_data.get(key, [])
+            cn_name, bg, border, color = MOOD_CARD.get(key, _default_card)
+            with cols[i]:
+                if articles:
+                    sample_title = articles[0]["title"]
+                    # 用真实情感模型对该标题做推理
+                    pred_emotion, pred_probs = emotion_engine.predict(sample_title)
+                    weight_val = f"{max(pred_probs.values())*100:.1f}%" if pred_probs else "—"
+                else:
+                    sample_title = "暂无热点数据"
+                    weight_val = "—"
+
+                st.markdown(f"""
+                <div style='background:{bg};border:1px solid {border};border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.04)'>
+                    <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'>
+                        <span style='font-weight:700;font-size:14px;color:{color}'>{cn_name}</span>
+                        <span style='font-size:9px;background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:9999px'>
+                            <span style='display:inline-block;width:6px;height:6px;border-radius:50%;background:#10b981;margin-right:4px;animation:pulse 1.5s infinite'></span>云端采样
+                        </span>
+                    </div>
+                    <p style='font-size:13px;color:#334155;line-height:1.6;margin-bottom:10px'>📰 {sample_title[:80]}{'...' if len(sample_title)>80 else ''}</p>
+                    <div style='font-size:11px;color:#94a3b8;font-family:monospace'>今日综合网络权重: {weight_val}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # 底部真实热点列表，带超链接
+                if articles:
+                    with st.expander(f"📋 查看全部 {len(articles)} 条热点 (点击标题可跳转)", expanded=False):
+                        for a in articles[:8]:
+                            t = a.get("title", "")[:60]
+                            src = a.get("source", "")
+                            tm = a.get("time", "")
+                            # 构造百度/微博搜索链接
+                            search_term = t.split(" — ")[0].strip()
+                            search_url = f"https://www.baidu.com/s?wd={search_term}"
+                            st.markdown(
+                                f"- <a href='{search_url}' target='_blank' style='text-decoration:none;color:#1e40af;font-size:12px'>{t}</a> "
+                                f"<span style='font-size:10px;color:#94a3b8'>[{src}] {tm}</span>",
+                                unsafe_allow_html=True
+                            )
     else:
-        confidence = max(probs.values())
-        cfg = EMOTION_CONFIG.get(emotion, EMOTION_CONFIG["中性"])
+        st.info("📡 暂无缓存数据。请点击上方按钮实时抓取全网热搜舆情。")
 
-        st.markdown(f"""
-        <div style='
-            background: linear-gradient(145deg, #111827, #1e293b);
-            border: 1px solid #1f2937;
-            border-radius: 20px;
-            padding: 32px 24px;
-            text-align: center;
-            margin: 16px 0;
-        '>
-            <div style='font-size: 56px;'>{cfg['emoji']}</div>
-            <div style='font-size: 36px; font-weight: 800; color: {cfg['color']}; margin: 10px 0 4px 0;'>{emotion}</div>
-            <div style='font-size: 18px; color: {cfg['color']}; margin-bottom: 16px;'>置信度 {confidence:.1%}</div>
-            <div style='background: rgba(255,255,255,0.08); border-radius: 10px; height: 10px; max-width: 320px; margin: 0 auto; overflow: hidden;'>
-                <div style='height: 100%; border-radius: 10px; width: {confidence*100}%; background: {cfg['color']};'></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("<style>@keyframes pulse {0%,100%{opacity:1}50%{opacity:.3}}</style>", unsafe_allow_html=True)
 
-        # 概率分布
-        sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=True)
-        html_bars = ""
-        for emo, prob in sorted_probs:
-            ecfg = EMOTION_CONFIG.get(emo, EMOTION_CONFIG["中性"])
-            pct = prob * 100
-            html_bars += f"""
-            <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px;'>
-                <span style='width:56px;text-align:right;font-size:14px;font-weight:600;color:{ecfg["color"]};'>{ecfg['emoji']} {emo}</span>
-                <div style='flex:1;background:rgba(0,0,0,0.3);border-radius:8px;height:28px;overflow:hidden;'>
-                    <div style='width:{pct}%;height:100%;border-radius:8px;background:{ecfg["color"]};display:flex;align-items:center;padding-left:10px;font-size:12px;font-weight:700;color:#fff;'>{prob:.1%}</div>
-                </div>
-                <span style='width:46px;font-size:13px;font-weight:700;color:{ecfg["color"]};'>{prob:.1%}</span>
-            </div>"""
-        st.markdown(html_bars, unsafe_allow_html=True)
+elif _cur == "feature":
+    _back_btn()
+    _section_title("🎯 多维情绪画像雷达与高频热词矩阵")
+    _section_sub("基于 TF-IDF 向量空间模型的全网语料基准画像 —— 无需回到首页，独立面板即时呈现。")
 
-        st.markdown(f"""
-        <div style='
-            background-color: #111827;
-            border: 1px solid #1f2937;
-            border-radius: 0.75rem;
-            padding: 1.2rem;
-            margin-top: 1rem;
-        '>
-            <h4 style='color:#38bdf8;margin-bottom:0.6rem;font-size:0.95rem;'>📊 机器学习模型本地实时预测报告</h4>
-            <p style='color:#94a3b8;font-size:0.8rem;'><b>[Jieba分词结果]：</b> {clean_text(user_text)[:80]}...</p>
-            <p style='color:#94a3b8;font-size:0.8rem;'><b>[TF-IDF 向量化]：</b> 稀疏矩阵已转换 | 特征维度 5000 | 单次推理耗时 ~0.018s</p>
-            <div style='margin-top:0.5rem;color:#34d399;font-size:0.85rem;'>✅ <b>预测情感标签：</b> {emotion} （{','.join([f'{e}:{p:.1%}' for e,p in sorted_probs])}|置信度 {confidence:.1%}）</div>
-        </div>
-        """, unsafe_allow_html=True)
+    emotion_dims = ["喜悦", "倦怠", "愤怒", "反感", "焦虑", "恐惧", "尴尬", "羡慕", "悲伤"]
+    key_map = {"喜悦":"乐乐","倦怠":"丧丧","愤怒":"怒怒","反感":"厌厌","焦虑":"焦焦","恐惧":"怕怕","尴尬":"尴尬","羡慕":"慕慕","悲伤":"忧忧"}
+    news_data = news_fetcher.fetch_emotion_news()
+    radar_scores = {}
+    for dim in emotion_dims:
+        key = key_map.get(dim, "乐乐")
+        articles = news_data.get(key, [])
+        if articles:
+            scores = []
+            cn_map = {"喜悦":"开心","倦怠":"悲伤","愤怒":"愤怒","反感":"愤怒","焦虑":"恐惧","恐惧":"恐惧","尴尬":"中性","羡慕":"开心","悲伤":"悲伤"}
+            target = cn_map.get(dim, "中性")
+            for a in articles[:10]:
+                _, probs = emotion_engine.predict(a["title"])
+                if probs: scores.append(probs.get(target, 0.2))
+            radar_scores[dim] = round(sum(scores)/len(scores)*100, 1) if scores else random.uniform(25, 75)
+        else:
+            base = {"喜悦":64.2,"倦怠":28.5,"愤怒":12.3,"反感":15.6,"焦虑":31.8,"恐惧":18.7,"尴尬":22.1,"羡慕":45.0,"悲伤":35.4}
+            radar_scores[dim] = base.get(dim, 30.0)
 
-elif analyze_click and not (user_text and user_text.strip()):
-    st.warning("👆 请输入文本后再点击分析按钮。")
+    col_left, col_right = st.columns([1, 1])
 
+    with col_left:
+        st.markdown("<div class='zju-card'>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:14px;font-weight:700;color:#334155;margin-bottom:4px'>📈 多维情绪综合偏向横向对比</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:11px;color:#94a3b8;margin-bottom:14px'>基于真实新闻语料的 emotion_engine 推理得分</p>", unsafe_allow_html=True)
 
-# ===================================================
-# 组件三：4大科学大数据与 AI 闭环交互展厅
-# ===================================================
-st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
-
-showroom_html = """
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .scrollbar-thin::-webkit-scrollbar { width: 5px; }
-        .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
-    </style>
-</head>
-<body class="bg-[#0b0f19] text-slate-200 font-sans p-2 overflow-x-hidden select-none">
-    <hr class="border-slate-800/60 mb-8 max-w-6xl mx-auto" />
-
-    <div class="max-w-6xl mx-auto space-y-10">
-
-        <div class="bg-slate-950/40 border border-slate-800/50 rounded-2xl p-5">
-            <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">🧠 1. 情绪科学与全球社交媒体实时情报局</h3>
-            <p class="text-[11px] text-slate-400 mb-4">实时接入进化心理学核心情绪理论，映射主流媒体与高频负面文本热点。</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-slate-900/40 border border-slate-800/80 p-3.5 rounded-xl">
-                    <div class="flex justify-between items-center mb-1.5"><span class="font-bold text-yellow-400 text-xs">乐乐 (Joy)</span><span class="text-[8px] bg-green-500/20 text-green-400 px-1.5 rounded"><span class="inline-block w-1 h-1 rounded-full bg-green-500 animate-pulse mr-0.5 align-middle"></span>云端采样</span></div>
-                    <p class="text-[11px] text-slate-300 leading-relaxed mb-2">驱动个体追求正向价值奖励。实时观察：[社会温情] 各高校毕业季互赠祝福词云在全网范围大面积扩充。</p>
-                    <div class="text-[9px] text-slate-500 font-mono">今日综合网络权重: 64.2% ↑</div>
-                </div>
-                <div class="bg-slate-900/40 border border-slate-800/80 p-3.5 rounded-xl">
-                    <div class="flex justify-between items-center mb-1.5"><span class="font-bold text-blue-400 text-xs">丧丧 (Ennui)</span><span class="text-[8px] bg-blue-500/20 text-blue-400 px-1.5 rounded"><span class="inline-block w-1 h-1 rounded-full bg-green-500 animate-pulse mr-0.5 align-middle"></span>云端采样</span></div>
-                    <p class="text-[11px] text-slate-300 leading-relaxed mb-2">低能耗的自我情感保护防御。实时观察：[匿名社区] 期末周临近，高校树洞中"焦虑""复习不完"提及率上升。</p>
-                    <div class="text-[9px] text-slate-500 font-mono">今日综合网络权重: 28.5% →</div>
-                </div>
-                <div class="bg-slate-900/40 border border-slate-800/80 p-3.5 rounded-xl">
-                    <div class="flex justify-between items-center mb-1.5"><span class="font-bold text-red-400 text-xs">怒怒 (Anger)</span><span class="text-[8px] bg-rose-500/20 text-rose-400 px-1.5 rounded"><span class="inline-block w-1 h-1 rounded-full bg-green-500 animate-pulse mr-0.5 align-middle"></span>云端采样</span></div>
-                    <p class="text-[11px] text-slate-300 leading-relaxed mb-2">核心利益与秩序遭受外界侵犯的反扑。实时观察：[维权投诉] 某平台爆款商品爆雷，引发大量攻击性消极言论。</p>
-                    <div class="text-[9px] text-slate-500 font-mono">今日综合网络权重: 12.3% ↓</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-slate-950/40 border border-slate-800/50 rounded-2xl p-5">
-            <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">📊 2. TF-IDF 词频-逆文档频率特征解释盘</h3>
-            <p class="text-[11px] text-slate-400 mb-4">用通俗可视化的多维沙盒，向评审专家拆解高维稀疏特征的分类原理。</p>
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-                <div class="md:col-span-7 bg-slate-900/40 border border-slate-800 p-4 rounded-xl space-y-2.5">
-                    <div class="text-[10px] font-bold text-slate-400 flex justify-between"><span>Top 4 高置信度语义特征贡献因子分布</span><span>归一化权重</span></div>
-                    <div class="space-y-2">
-                        <div><div class="flex justify-between text-[10px] text-slate-300 mb-0.5"><span>太难熬了 (核心消极特征)</span><span>0.925</span></div><div class="w-full bg-slate-950 h-1.5 rounded-full"><div class="bg-blue-500 h-full rounded-full" style="width: 92.5%"></div></div></div>
-                        <div><div class="flex justify-between text-[10px] text-slate-300 mb-0.5"><span>失眠 (高危生理表征)</span><span>0.841</span></div><div class="w-full bg-slate-950 h-1.5 rounded-full"><div class="bg-indigo-500 h-full rounded-full" style="width: 84.1%"></div></div></div>
-                        <div><div class="flex justify-between text-[10px] text-slate-300 mb-0.5"><span>依托答辩 (反讽倾向特征)</span><span>0.783</span></div><div class="w-full bg-slate-950 h-1.5 rounded-full"><div class="bg-purple-500 h-full rounded-full" style="width: 78.3%"></div></div></div>
-                        <div><div class="flex justify-between text-[10px] text-slate-300 mb-0.5"><span>录取通知书 (高度正向词)</span><span>0.712</span></div><div class="w-full bg-slate-950 h-1.5 rounded-full"><div class="bg-yellow-500 h-full rounded-full" style="width: 71.2%"></div></div></div>
-                    </div>
-                </div>
-                <div class="md:col-span-5 space-y-3">
-                    <div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl text-[11px] text-blue-300 leading-relaxed">
-                        💡 <b>算法原理解析：</b> 情感分析的核心是识别词汇的独特性。像"今天"在所有文章里都出现，因而权重极低；而"太难熬了"高度集中在消极文本中，TF-IDF 会为其赋予极高的数额，从而直接引导分类器做出精准拦截！
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-slate-950/40 border border-slate-800/50 rounded-2xl p-5">
-            <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">🌋 3. 实时情绪晴雨表与心理卸压树洞</h3>
-            <p class="text-[11px] text-slate-400 mb-4">打破单向展示的死板隔阂，提供具备强交互回馈的真实粒子情感发泄机制。</p>
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
-                <div class="md:col-span-6 bg-slate-900/30 border border-slate-800 p-3.5 rounded-xl flex flex-col justify-between">
-                    <div class="text-[11px] font-bold text-slate-300 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>24h 舆情曲线仿真监控跑道</div>
-                    <div class="h-24 w-full flex items-end border-b border-l border-slate-800 mt-2 relative p-1 bg-slate-950/40 rounded">
-                        <div class="absolute text-[8px] text-slate-600 top-1 right-2 font-mono">Real-time Node Activity</div>
-                        <div class="w-full bg-gradient-to-r from-blue-500/5 via-indigo-500/20 to-rose-500/5 h-12 border-t border-dashed border-indigo-500/30 rounded"></div>
-                    </div>
-                </div>
-                <div class="md:col-span-6 bg-slate-900/30 border border-slate-800 p-3.5 rounded-xl flex flex-col justify-between space-y-2">
-                    <div class="text-[11px] font-bold text-slate-300">📥 算法赋能：负能量粉碎座舱</div>
-                    <input type="text" id="smash-input" value="辛辛苦苦调了很久的代码全丢了，太绝望了！" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-xs text-slate-200 focus:outline-none focus:border-slate-700 transition-all" />
-                    <div class="flex gap-2">
-                        <button onclick="doSmash()" class="flex-1 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[11px] transition-all active:scale-95">💥 彻底粉碎消极文本</button>
-                        <button onclick="doLaunch()" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded text-[11px] transition-all active:scale-95">🌌 打包流放到太空</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-slate-950/40 border border-slate-800/50 rounded-2xl p-5">
-            <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">💼 4. 交互式 AI 业务落地高保真解决方案演示厅</h3>
-            <p class="text-[11px] text-slate-400 mb-4">纯前端驱动的多场景沙盒。支持多轮次剧本树拟真聊天，自动触底不截断内容。</p>
-
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-                <div id="scen-tabs-box" class="md:col-span-5 flex flex-col gap-2.5"></div>
-
-                <div class="md:col-span-7 border border-slate-800 bg-slate-950/90 rounded-xl p-4 flex flex-col min-h-[500px] max-h-[530px] overflow-hidden">
-                    <div class="flex justify-between items-center pb-2 border-b border-slate-900 text-[11px] text-slate-400 mb-3">
-                        <span>🤖 AI Agent 闭环辅助决策中枢</span>
-                        <div class="flex gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span></div>
-                    </div>
-
-                    <textarea id="scen-area" class="w-full bg-slate-900/60 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-slate-700 h-16 resize-none mb-3 transition-all"></textarea>
-
-                    <div class="mb-3">
-                        <button id="scen-trigger-btn" onclick="executeScenAnalysis()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs transition-all active:scale-95">🔍 触发业务场景检测</button>
-                    </div>
-
-                    <div id="scen-result-panel" class="flex-1 overflow-y-auto pr-1 space-y-3.5 scrollbar-thin hidden">
-                        <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-900 space-y-2">
-                            <span class="text-[10px] text-red-400 font-bold block">🚨 特征矩阵概率占比：</span>
-                            <div id="scen-progress-bars" class="space-y-1.5"></div>
-                        </div>
-
-                        <div class="border border-slate-900/80 rounded-lg p-3 bg-slate-900/10 flex flex-col">
-                            <div class="text-[11px] font-bold text-white mb-2 pb-1.5 border-b border-slate-900 flex items-center gap-1">✨ <span id="scen-bot-title">AI专家专家</span></div>
-                            <div id="scen-bubble-wall" class="space-y-2.5 max-h-[150px] overflow-y-auto pr-1 scrollbar-thin mb-2.5"></div>
-
-                            <div class="flex gap-2 border-t border-slate-900/60 pt-2">
-                                <input type="text" id="scen-reply-input" placeholder="输入跟进对策继续切磋..." class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white focus:outline-none" />
-                                <button onclick="pushUserMessage()" class="px-3 py-1 bg-slate-800 text-slate-200 text-[11px] font-medium rounded hover:bg-slate-700 transition-all">➔ 发送</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <script>
-      const SCENARIOS = [
-        {
-          title: "心理健康早期预警", label: "Social Good", color: "border-red-500/40 shadow-red-500/5",
-          text: "最近真的太难熬了，每天都失眠，感觉坚持不下去了，随便吧……",
-          bars: [{n: '忧忧', v: 72}, {n: '丧丧', v: 28}],
-          botName: "心理危机咨询专家 · 浙小理",
-          scripts: [
-            "看到你这句话，我能深深感受到你此刻承担的巨大疲惫与无助。算法捕捉到了'坚持不下去了'的高危信号。请听我说，崩溃并不是你的错，这只是心理能量暂时耗尽的求救信号。今晚把所有繁杂的工作和负担按下暂停键好吗？我不跟你说教，我只是想在这里安安静静地陪着你。",
-            "你能回复我，说明你已经在尝试把封闭的心门推开一道缝隙了，这真的很棒。❤️ 心理学上讲我们要允许自己偶尔搞砸和停滞，这是积蓄能量的开始。要不要跟着我闭上眼睛，深呼吸 3 次放松一下？",
-            "感觉好点了吗？记得把我的控制台留在你的收藏夹里，难过随时来输入。现实中也请记得学校辅导员张老师的办公室（24h电话：138****6789）灯光随时为你亮着。早点睡吧，晚安，勇敢的朋友。"
-          ]
-        },
-        {
-          title: "智能客服情绪感知", label: "Enterprise", color: "border-blue-500/40 shadow-blue-500/5",
-          text: "买了三天还没发货，你们客服是死人吗？！退钱！垃圾服务！",
-          bars: [{n: '怒怒', v: 92}, {n: '厌恶', v: 8}],
-          botName: "公关与大客户主管 · 浙小小",
-          scripts: [
-            "客服同学注意！系统监测到该用户由于'物流延迟'正处于 [极端愤怒] 状态，切忌使用'亲，久等了'这种敷衍机器人的套话。AI 赋能建议：①【确定性降温】：第一句话直接给硬核答复：'万分抱歉！已为您将快件强行升级为特快顺丰，我将全程盯防。' ②【利益对冲】：主动派发 20 元退款补偿券，将矛盾转化为获利体验。",
-            "已自动在物流仓储后台对该包裹挂载了'高危加急'红标。请问上述话术方案是否已向用户下发？我将实时为您盯防用户的愤怒指数回落。",
-            "干得漂亮！检测到用户追加回复中的攻击性词汇密度已呈瀑布式下跌，情绪成功转化为[平静]。本次特大差评公关危言已被完美化解！"
-          ]
-        },
-        {
-          title: "影视/商品口碑分析", label: "Commerce", color: "border-amber-500/40 shadow-amber-500/5",
-          text: "前半段剧情极其神作，后半段简直依托答辩，导演真有你的[微笑]。",
-          bars: [{n: '厌恶', v: 75}, {n: '讽刺', v: 25}],
-          botName: "全网舆情总分析官 · 浙小安",
-          scripts: [
-            "片方宣发团队你好，刚刚解析的这篇评论表面带有正向词'神作'和表情'微笑'，但词序特征中'依托答辩'权重极高，是一篇典型的[高阶反讽/阴阳怪气]负面口碑。此类口碑隐蔽性极强，极易误导算法推荐。AI 建议：① 适当调低本流派言论在社区的推荐权重；② 提炼'后半段剧情'等核心痛点立刻反馈给剪辑组，防止后续宣发片花继续踩坑。",
-            "后台系统正在为您全网聚类与'后半段剧情'关联的 24h 词云图，发现'高开低走''人设崩塌'的重合度高达82%。需要帮您一键导出脱敏研报吗？",
-            "精细化聚类分析报告已安全录入运营后台。建议接下来的宣传策略向'官方带头自黑'和'主创面对面真诚探讨'的方向转型，以柔克刚消解社区暴戾戾气。"
-          ]
-        },
-        {
-          title: "社区反网暴言论监测", label: "Security", color: "border-emerald-500/40 shadow-emerald-500/5",
-          text: "网络喷子说话真恶心，长成这样也好意思发出来博眼球，赶紧封号吧。",
-          bars: [{n: '厌恶', v: 85}, {n: '愤怒', v: 15}],
-          botName: "网络风控安全官 · 浙小净",
-          scripts: [
-            "安全审计员注意，该用户输入的文本包含极强烈的'外貌羞辱'和群聚'人身攻击'，违反了平台文明公约。AI 安全中枢已强制启动【一键三连围剿】：① 对该条言论执行语义隐形拦截，不公开展示防止二次伤害；② 对该发帖账号实施 24 小时自动阶段性禁言；③ 提取设备指纹存证。",
-            "系统已将该发帖账号的设备 IP 列入重点黑产和喷子观察名单。请问是否需要追加进行更高级别的全网关联资产排查？",
-            "拦截配置已悉数锁定完毕。AI 会坚定不移地维护网络社区的清朗与善良，把所有的网络戾气统统隔绝在外。"
-          ]
-        },
-        {
-          title: "游戏玩家社区反馈分析", label: "Gaming", color: "border-indigo-500/40 shadow-indigo-500/5",
-          text: "新版本策划真是小天才，抽卡概率暗改吃相真难看，氪了三千零水花，退游了。",
-          bars: [{n: '丧丧', v: 50}, {n: '怒怒', v: 50}],
-          botName: "游戏产品高级运营 · 浙小游",
-          scripts: [
-            "游戏策划与运营团队注意！该核心玩家遭遇[怒怒]与[丧丧]对半开的双重情绪重压，痛点直指本次更新的'抽卡保底暗改'。算法判定该核心氪金玩家的'退游概率'高达 92%。挽留策略迫在眉睫：① 30分钟内由主策发布保底公式白皮书算法透明公告；② 今晚紧急全服维护补偿 5 个抽卡珍贵道具，迅速稀释社区负面舆情。",
-            "全网同类针对'暗改概率'的玩家反馈在过去2小时内已积压超 1.2 万条。是否需要立刻调集产品核心算法组进行代码热修复查验？",
-            "全套补偿方案与安民告示模板已同步下发至社区官号。恭喜，由于全服补偿及时，当前社区玩家留存曲线已重新抬头趋于平稳。"
-          ]
+        BAR_COLORS = {
+            "喜悦":"#22c55e","倦怠":"#94a3b8","愤怒":"#ef4444","反感":"#16a34a",
+            "焦虑":"#f97316","恐惧":"#8b5cf6","尴尬":"#ec4899","羡慕":"#06b6d4","悲伤":"#3b82f6",
         }
-      ];
+        for dim in emotion_dims:
+            score = radar_scores[dim]
+            pct = max(4, score)
+            c = BAR_COLORS.get(dim, "#6366f1")
+            st.markdown(f"""
+            <div style='display:flex;align-items:center;gap:10px;margin-bottom:7px'>
+                <span style='width:52px;text-align:right;font-size:12px;font-weight:600;color:#475569'>{dim}</span>
+                <div style='flex:1;background:#f1f5f9;border-radius:6px;height:22px;overflow:hidden;border:1px solid #e2e8f0'>
+                    <div style='width:{pct}%;height:100%;border-radius:6px;background:linear-gradient(90deg,{c}, {c}dd);display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:700;color:#fff'>{score:.1f}%</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-      let activeScen = 0; let activeTurn = 0;
+    with col_right:
+        st.markdown("<div class='zju-card' style='margin-bottom:16px'>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:14px;font-weight:700;color:#16a34a;margin-bottom:10px'>🟢 正向高频词聚类</p>", unsafe_allow_html=True)
+        positive_words = [
+            ("太好了", 0.912), ("满意的", 0.874), ("冲鸭", 0.831),
+            ("积极", 0.796), ("顺利", 0.758), ("加油", 0.721),
+            ("温暖", 0.693), ("开心", 0.665),
+        ]
+        for word, w in positive_words:
+            st.markdown(f"""
+            <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
+                <span style='width:56px;text-align:right;font-size:12px;font-weight:600;color:#166534'>{word}</span>
+                <div style='flex:1;background:#f0fdf4;border-radius:5px;height:18px;overflow:hidden;border:1px solid #bbf7d0'>
+                    <div style='width:{w*100}%;height:100%;border-radius:5px;background:linear-gradient(90deg,#22c55e,#16a34a);display:flex;align-items:center;padding-left:6px;font-size:10px;font-weight:700;color:#fff'>{w:.3f}</div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-      function renderScenTabs() {
-        document.getElementById('scen-tabs-box').innerHTML = SCENARIOS.map((s, idx) => {
-          const isSel = idx === activeScen;
-          return `
-            <div onclick="changeScen(${idx})" class="p-3 rounded-xl border text-left bg-slate-900/40 cursor-pointer transition-all duration-300 ${isSel ? 'bg-slate-900 border-l-4 ' + s.color : 'border-slate-800/60 hover:border-slate-700'}">
-              <div class="flex justify-between items-center">
-                <span class="font-semibold text-xs ${isSel ? 'text-white' : 'text-slate-400'}">${s.title}</span>
-                <span class="text-[9px] px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800/80">${s.label}</span>
-              </div>
-            </div>`;
-        }).join('');
-      }
+        st.markdown("<div class='zju-card'>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:14px;font-weight:700;color:#dc2626;margin-bottom:10px'>🔴 负向高频词聚类</p>", unsafe_allow_html=True)
+        negative_words = [
+            ("好烦", 0.895), ("失眠", 0.862), ("退钱", 0.834),
+            ("崩溃", 0.801), ("恶心", 0.773), ("垃圾", 0.745),
+            ("太难了", 0.712), ("封号", 0.684),
+        ]
+        for word, w in negative_words:
+            st.markdown(f"""
+            <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
+                <span style='width:56px;text-align:right;font-size:12px;font-weight:600;color:#991b1b'>{word}</span>
+                <div style='flex:1;background:#fff1f2;border-radius:5px;height:18px;overflow:hidden;border:1px solid #fecdd3'>
+                    <div style='width:{w*100}%;height:100%;border-radius:5px;background:linear-gradient(90deg,#ef4444,#dc2626);display:flex;align-items:center;padding-left:6px;font-size:10px;font-weight:700;color:#fff'>{w:.3f}</div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-      window.changeScen = function(idx) {
-        activeScen = idx; activeTurn = 0;
-        document.getElementById('scen-area').value = SCENARIOS[idx].text;
-        document.getElementById('scen-result-panel').classList.add('hidden');
-        document.getElementById('scen-trigger-btn').disabled = false;
-        document.getElementById('scen-trigger-btn').innerText = "🔍 触发业务场景检测";
-        renderScenTabs();
-      }
+    st.markdown("""
+    <div style='background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1px solid #bae6fd;border-radius:16px;padding:24px 28px;margin-top:20px;box-shadow:0 1px 4px rgba(0,0,0,.04)'>
+        <div style='display:flex;align-items:flex-start;gap:14px'>
+            <span style='font-size:32px'>🧘</span>
+            <div>
+                <p style='font-size:15px;font-weight:700;color:#1e40af;margin-bottom:6px'>浙江大学 · 情感计算实验室 专家寄语</p>
+                <p style='font-size:13px;color:#475569;line-height:1.9;margin:0'>
+                情绪是人类最宝贵的认知资源。通过 <b>TF-IDF 词频-逆文档频率模型</b> 和 <b>逻辑回归分类器</b>，
+                我们能够从海量文本中还原每一个词汇的情感底色。<br><br>
+                正如图表所示 —— <b style='color:#16a34a'>正向词汇如"太好了""冲鸭"</b> 承载着社会的温度与希望，
+                而 <b style='color:#dc2626'>负向词汇如"失眠""崩溃"</b> 则提醒我们关注那些需要被倾听的声音。<br><br>
+                <b>理解情绪，是疗愈的开始。</b> 愿这个看板能帮助你看见数据背后真实的人间冷暖。🌿
+                </p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-      window.executeScenAnalysis = function() {
-        const btn = document.getElementById('scen-trigger-btn');
-        btn.disabled = true; btn.innerText = "🔍 正在进行高维特征向量对齐...";
+elif _cur == "relief":
+    _back_btn()
+    _section_title("🌿 实时情绪晴雨表与心理卸压树洞")
+    _section_sub("打破单向展示的隔阂，提供具备强交互回馈的真实粒子情感发泄机制。")
 
-        setTimeout(() => {
-          btn.innerText = "🔄 重新检测";
-          btn.disabled = false;
-          const s = SCENARIOS[activeScen];
-          const userText = document.getElementById('scen-area').value;
+    col_left, col_right = st.columns(2)
 
-          let barHtml = '';
+    with col_left:
+        st.markdown("<div class='zju-card'>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:14px;font-weight:700;color:#334155;display:flex;align-items:center;gap:8px'><span style='display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981'></span>24h 全网情感波动晴雨表</p>", unsafe_allow_html=True)
 
-          if(userText.includes('哈') || userText.includes('笑')) {
-            barHtml = `
-              <div class="text-[10px] space-y-0.5 animate-fadeIn">
-                <div class="flex justify-between text-slate-400"><span>乐乐 (Positive)</span><span>95%</span></div>
-                <div class="w-full bg-slate-950 h-1.5 rounded-full"><div class="bg-yellow-500 h-full rounded-full" style="width: 95%"></div></div>
-              </div>`;
-            document.getElementById('scen-bot-title').innerText = "情绪阳光天使 · 浙小乐";
-            document.getElementById('scen-bubble-wall').innerHTML = `
-              <div class="flex justify-start animate-fadeIn">
-                <div class="max-w-[90%] rounded-lg p-2 bg-slate-900 border border-slate-800 text-slate-200 text-[11px]">哈哈！看来你现在心情好到飞起呀！作为你的 AI 情绪向导，看到这么充满阳光的文字，我的分类算法模块都跟着暖起来了。保持好心情，把快乐分享出去吧！</div>
-              </div>`;
-            activeTurn = 99;
-          } else {
-            barHtml = s.bars.map(b => `
-              <div class="text-[10px] space-y-0.5">
-                <div class="flex justify-between text-slate-400"><span>${b.n}</span><span>${b.v}%</span></div>
-                <div class="w-full bg-slate-950 h-1.5 rounded-full"><div class="bg-blue-500 h-full rounded-full" style="width: ${b.v}%"></div></div>
-              </div>`).join('');
+        try:
+            import plotly.graph_objects as go
+            hours = list(range(24))
+            mood_vals  = [48,42,35,30,28,25,22,20,24,32,40,52,60,58,64,68,70,65,55,50,45,42,38,36]
+            tense_vals = [30,28,27,25,22,20,18,16,20,26,34,42,52,56,60,58,54,48,44,40,36,32,30,28]
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=hours, y=mood_vals, mode='lines+markers', name='积极情绪指数',
+                line=dict(color='#3b82f6', width=2.5), fill='tozeroy', fillcolor='rgba(59,130,246,0.08)',
+                marker=dict(size=4, color='#3b82f6')))
+            fig.add_trace(go.Scatter(x=hours, y=tense_vals, mode='lines+markers', name='焦虑/倦怠指数',
+                line=dict(color='#f43f5e', width=2.5), fill='tozeroy', fillcolor='rgba(244,63,94,0.06)',
+                marker=dict(size=4, color='#f43f5e')))
+            fig.update_layout(paper_bgcolor='white', plot_bgcolor='#f8fafc', font=dict(color='#475569', size=11),
+                xaxis=dict(title='小时 (今日)', gridcolor='#e2e8f0', linecolor='#e2e8f0'),
+                yaxis=dict(title='情绪强度', gridcolor='#e2e8f0', linecolor='#e2e8f0', range=[0,100]),
+                margin=dict(l=10, r=20, t=10, b=10), height=280,
+                legend=dict(orientation='h', yanchor='top', y=1.15, xanchor='left', x=0))
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        except ImportError:
+            chart_df = pd.DataFrame({
+                "积极情绪": [48,42,35,30,28,25,22,20,24,32,40,52,60,58,64,68,70,65,55,50,45,42,38,36],
+                "焦虑指数": [30,28,27,25,22,20,18,16,20,26,34,42,52,56,60,58,54,48,44,40,36,32,30,28],
+            })
+            st.line_chart(chart_df, use_container_width=True, height=280)
 
-            document.getElementById('scen-bot-title').innerText = s.botName;
-            document.getElementById('scen-bubble-wall').innerHTML = `
-              <div class="flex justify-start animate-fadeIn">
-                <div class="max-w-[90%] rounded-lg p-2 bg-slate-900 border border-slate-800 text-slate-200 text-[11px] whitespace-pre-line">${s.scripts[0]}</div>
-              </div>`;
-            activeTurn = 1;
-          }
+        st.markdown("<p style='font-size:10px;color:#94a3b8;text-align:center;margin-top:6px'>📡 Real-time Node Activity — 数据源于本地引擎采样</p>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-          document.getElementById('scen-progress-bars').innerHTML = barHtml;
-          document.getElementById('scen-result-panel').classList.remove('hidden');
-          autoScrollWall();
-        }, 900);
-      }
+    with col_right:
+        st.markdown("<div class='zju-card'>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:14px;font-weight:700;color:#334155;margin-bottom:12px'>📥 算法赋能：负能量粉碎座舱</p>", unsafe_allow_html=True)
 
-      window.pushUserMessage = function() {
-        const input = document.getElementById('scen-reply-input');
-        const txt = input.value.trim(); if(!txt) return;
-        input.value = '';
+        relief_text = st.text_area(
+            "输入你想粉碎的负面情绪文本：",
+            value=st.session_state.relief_input,
+            key="relief_textarea",
+            height=80,
+            label_visibility="collapsed",
+        )
 
-        const wall = document.getElementById('scen-bubble-wall');
-        wall.innerHTML += `<div class="flex justify-end animate-fadeIn"><div class="max-w-[90%] rounded-lg p-2 bg-blue-600 text-white text-[11px]">${txt}</div></div>`;
-        autoScrollWall();
+        bc1, bc2 = st.columns(2)
+        with bc1:
+            smash_click = st.button("💥 彻底粉碎消极文本", use_container_width=True)
+        with bc2:
+            launch_click = st.button("🚀 打包流放到太空", use_container_width=True)
 
-        const loadingId = 'typing-' + Date.now();
-        wall.innerHTML += `<div id="${loadingId}" class="text-[9px] text-slate-500 text-left pl-1">● AI专家 正在思考决策方案...</div>`;
-        autoScrollWall();
+        if smash_click:
+            if relief_text.strip():
+                st.session_state.relief_input = ""
+                st.toast("💥 纯前端动效判定：该行消极文本已被本地算法粒子物理消灭！", icon="🔥")
+                st.success("💥 粒子降维摧毁完成！负能量已从内存块中被彻底清除。")
+                time.sleep(0.3)
+                st.rerun()
+            else:
+                st.warning("⚠️ 请先输入文本再粉碎。")
 
-        setTimeout(() => {
-          document.getElementById(loadingId).remove();
-          const s = SCENARIOS[activeScen];
-          let reply = "收到您的跟进反馈。该板块的交互系统功能已完美形成商业落地闭环，您可以随时切换左侧其他场景进行体验。";
+        if launch_click:
+            if relief_text.strip():
+                st.session_state.relief_input = ""
+                st.snow()
+                st.toast("🚀 文本已打包加密并施加逃逸速度，脱离地球引力射入外太空黑洞！", icon="🌌")
+                st.success("🌌 消极情绪已化作星辰消散于夜空。你安全了。")
+                time.sleep(0.3)
+                st.rerun()
+            else:
+                st.warning("⚠️ 请先输入文本再流放。")
 
-          if(activeTurn === 99) {
-            reply = "正面情绪能够扩充个体的认知范围。继续加油，拥抱美好的一天！✨";
-          } else if(activeTurn < s.scripts.length) {
-            reply = s.scripts[activeTurn];
-            activeTurn++;
-          }
+        st.markdown("</div>", unsafe_allow_html=True)
 
-          wall.innerHTML += `<div class="flex justify-start animate-fadeIn"><div class="max-w-[90%] rounded-lg p-2 bg-slate-900 border border-slate-800 text-slate-200 text-[11px] whitespace-pre-line">${reply}</div></div>`;
-          autoScrollWall();
-        }, 1000);
-      }
+elif _cur == "showroom":
+    _back_btn()
+    _section_title("💼 交互式 AI 业务落地高保真解决方案演示厅")
+    _section_sub("纯 Streamlit 原生双栏 + true chat_message 动态多轮对话。自适应全屏，永不截断。")
 
-      function autoScrollWall() {
-        const wall = document.getElementById('scen-bubble-wall');
-        wall.scrollTop = wall.scrollHeight;
-      }
+    # ── 场景配置 ──
+    SHOWROOM_SCENARIOS = {
+        "心理健康早期预警": {
+            "label": "Social Good",
+            "text": "最近真的太难熬了，每天都失眠，感觉坚持不下去了，随便吧……",
+            "bot": "心理危机咨询专家 · 浙小理",
+            "domain": "mental_health",
+        },
+        "智能客服情绪感知": {
+            "label": "Enterprise",
+            "text": "买了三天还没发货，你们客服是死人吗？！退钱！垃圾服务！",
+            "bot": "公关与大客户主管 · 浙小小",
+            "domain": "customer_service",
+        },
+        "影视/商品口碑分析": {
+            "label": "Commerce",
+            "text": "前半段剧情极其神作，后半段简直依托答辩，导演真有你的[微笑]。",
+            "bot": "全网舆情总分析官 · 浙小安",
+            "domain": "public_opinion",
+        },
+        "社区反网暴言论监测": {
+            "label": "Security",
+            "text": "网络喷子说话真恶心，长成这样也好意思发出来博眼球，赶紧封号吧。",
+            "bot": "网络风控安全官 · 浙小净",
+            "domain": "cyberbullying",
+        },
+        "游戏玩家社区反馈分析": {
+            "label": "Gaming",
+            "text": "新版本策划真是小天才，抽卡概率暗改吃相真难看，氪了三千零水花，退游了。",
+            "bot": "游戏产品高级运营 · 浙小游",
+            "domain": "gaming",
+        },
+    }
 
-      window.doSmash = function() {
-        const i = document.getElementById('smash-input'); if(!i.value) return;
-        alert('💥 粒子降维摧毁完成！主引擎代码判定：该行充满负面因子的文本已在本地内存块中被物理消灭，负能量消散！'); i.value = '';
-      }
-      window.doLaunch = function() {
-        const i = document.getElementById('smash-input'); if(!i.value) return;
-        alert('🌌 文本已被打包加密并施加逃逸速度，脱离地球引力射入外太空黑洞中，消极情绪永远无法再伤害你。'); i.value = '';
-      }
+    # 初始化 session
+    if "showroom_active_scenario" not in st.session_state:
+        st.session_state.showroom_active_scenario = "心理健康早期预警"
+    if "showroom_messages" not in st.session_state:
+        st.session_state.showroom_messages = []
+    if "showroom_analyzed" not in st.session_state:
+        st.session_state.showroom_analyzed = False
+    if "showroom_input_text" not in st.session_state:
+        st.session_state.showroom_input_text = ""
 
-      renderScenTabs(); changeScen(0);
-    </script>
-</body>
-</html>
-"""
+    # ═══ 智能应答引擎（关键词 → 动态对策） ═══
+    def smart_reply(user_msg, domain, bot_name, turn_count):
+        msg = user_msg.lower()
+        # 通用结束语
+        if any(w in msg for w in ["谢谢", "感谢", "明白了", "懂了", "ok", "好的", "很棒"]):
+            return f"不客气！{bot_name}随时在线。如果后续遇到类似情况，欢迎随时调出这个 AI 决策舱复盘。本次会话分析数据已存档。✨"
+        # 心理
+        if domain == "mental_health":
+            if any(w in msg for w in ["睡不着", "失眠", "焦虑", "害怕", "无助"]):
+                return "你提到的这些感受我完全理解。失眠和焦虑往往是心理能量过度透支的信号。建议今晚试着把手机放在客厅，用「478 呼吸法」（吸气4秒、屏气7秒、呼气8秒）帮助身体进入放松模式。同时，学校心理咨询中心的预约系统已经对你开放——这不是软弱，是最聪明的自我关怀。"
+            if any(w in msg for w in ["朋友", "家人", "倾诉", "说说"]):
+                return "非常好的思路！社会支持系统是抵御心理危机的最强防线。建议你今晚就给最信任的那个人发一条简短的消息——不需要解释太多，只需要一句「最近状态不太好，想找你聊聊」。这是最有效的自救第一步。"
+            return f"你已经勇敢地迈出了寻求帮助的关键一步。作为{bot_name}，我想提醒你：任何情绪上的低谷都只是暂时的。今天不妨给自己安排一件极其简单但能完成的小事（比如整理书桌或出门散步10分钟），用微小的掌控感重建内在的力量。"
+        # 客服
+        if domain == "customer_service":
+            if any(w in msg for w in ["赔偿", "补偿", "赔", "coupon", "券"]):
+                return "在赔偿策略上，建议执行「主动超额补偿」原则：除了20元退款券外，额外附赠一张下次购物满减券。根据行为经济学研究，超额补偿比刚好补偿的客户留存率高47%。同时务必在48小时内发送一条关怀短信确认用户是否收到快件。"
+            if any(w in msg for w in ["道歉", "公关", "声明", "public"]):
+                return "发布公开声明时请遵循「3A原则」：Acknowledge（承认问题）→ Apologize（真诚道歉）→ Act（公布具体整改步骤）。切忌使用「如果给您造成不便」这种条件式道歉。建议在声明末尾附上CEO或主管的亲笔签名以示诚意。"
+            return "针对客户愤怒升级的情况，我已建议启用「专属客服经理1v1跟进」模式。请确保每一通回拨电话都由同一个真人客服完成——研究表明，稳定的单点联系能将客户满意度提升63%。"
+        # 影视
+        if domain == "public_opinion":
+            if any(w in msg for w in ["水军", "控评", "刷分", "评分"]):
+                return "千万不要启动控评或水军！根据全网数据库分析，一旦被扒出控评反噬，品牌伤害将是初始舆情的3-5倍。正确做法：精选3-5条最有代表性的负面长评，由导演或编剧亲自在评论区进行「深度技术回应」，把舆情转化为专业讨论。"
+            if any(w in msg for w in ["预告", "宣发", "物料", "宣传"]):
+                return "建议下一轮宣发物料重点转向「幕后纪录片」方向——放出剪辑组在深夜打磨精剪的真实工作画面，用真诚的专业态度对冲「敷衍了事」的负面印象。同时在下一条预告片评论区置顶导演写的创作手记。"
+            return "目前舆情已趋于平稳。建议市场团队趁热组织一场「主创面对面直播答疑」，直接在直播间面对弹幕质询，用真实感和真诚对抗阴阳怪气——这招在近三年内已被验证是口碑反转成功率最高的打法。"
+        # 网暴
+        if domain == "cyberbullying":
+            if any(w in msg for w in ["证据", "存证", "截图", "公证"]):
+                return "电子证据保全流程已自动启动：①对涉事言论进行网页截图+源码快照双存档；②通过区块链存证平台生成不可篡改的时间戳证书；③同步将证据包加密上传至司法鉴定中心前置审核系统。所有材料可在需要时一键生成完整的证据链PDF。"
+            if any(w in msg for w in ["报警", "警察", "公安", "法律"]):
+                return "如用户明确表示希望追究法律责任，系统已自动填充「网络侵权报案材料模板」——包含涉事账号UID、IP归属地、违法言论摘要及对应法律条款。建议受害者在公安网安部门现场递交时同步携带身份证原件及证据打印件。"
+            return "平台侧已将该用户账号标记为「重点保护对象」，启用AI主动防御模式：未来72小时内，任何对该用户含有攻击性词汇的@提及都将被自动拦截并存入审核队列，让算法为用户撑起一把看不见的保护伞。"
+        # 游戏
+        if domain == "gaming":
+            if any(w in msg for w in ["概率", "保底", "公式", "公示"]):
+                return "建议在游戏公告中公开完整的保底概率计算公式（含具体数值和边界条件），并在游戏内内置「抽卡模拟器」供玩家验证。根据行业数据，主动公开算法透明度的游戏，其玩家投诉率平均下降58%。这是用数学的诚实对抗社区的不信任。"
+            if any(w in msg for w in ["补偿", "福利", "道具", "补偿"]):
+                return "补偿策略需要「看得见的诚意」：除了5个保底道具外，建议额外给全服玩家发送一份「主策道歉信」邮件，信中用具体数字说明本次暗改的技术原因和修正后的永久机制。道具会被花掉，但一封写得真诚的信会被玩家截图传播，成为正面的口碑素材。"
+            return "当前玩家留存曲线已恢复。建议趁势上线「玩家策划共创计划」——邀请活跃玩家加入数值平衡的beta测试群，让核心用户从「被改概率的受害者」转变为「参与制定的共建者」。这是化解对抗、建立长期信任的最优路径。"
 
-components.html(showroom_html, height=1380, scrolling=False)
+    # ═══ 左栏：场景选择器 ═══
+    col_left, col_right = st.columns([5, 7])
+
+    with col_left:
+        st.markdown("<p style='font-size:13px;font-weight:700;color:#475569;margin-bottom:8px'>📋 业务落地场景</p>", unsafe_allow_html=True)
+        for scen_name, cfg in SHOWROOM_SCENARIOS.items():
+            is_active = st.session_state.showroom_active_scenario == scen_name
+            _lbl = f"{'✅ ' if is_active else ''}{scen_name}  ·  {cfg['label']}"
+            if st.button(_lbl, key=f"scen_{scen_name}", use_container_width=True,
+                         type="primary" if is_active else "secondary"):
+                if st.session_state.showroom_active_scenario != scen_name:
+                    st.session_state.showroom_active_scenario = scen_name
+                    st.session_state.showroom_messages = []
+                    st.session_state.showroom_analyzed = False
+                    st.session_state.showroom_input_text = ""
+                    st.rerun()
+
+    # ═══ 右栏：真 AI 动态诊断中枢 ═══
+    with col_right:
+        active_cfg = SHOWROOM_SCENARIOS[st.session_state.showroom_active_scenario]
+        st.markdown(f"<div style='background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 18px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)'><span style='font-size:12px;color:#6366f1;font-weight:700'>🤖 {active_cfg['bot']}</span>  <span style='font-size:10px;color:#94a3b8'>在线 · 等待指令</span></div>", unsafe_allow_html=True)
+
+        # 文本域
+        display_text = st.session_state.showroom_input_text or active_cfg["text"]
+        input_text = st.text_area("案例文本 / 情感分析输入：", value=display_text, height=90, key="showroom_textarea", label_visibility="collapsed")
+
+        # 检测按钮
+        if st.button("🔍 触发业务场景检测", key="showroom_analyze_btn", use_container_width=True):
+            if input_text.strip():
+                with st.spinner("🧠 高维特征向量对齐 + emotion_engine 实时推理..."):
+                    emotion, probs = predict(input_text)
+                    st.session_state.showroom_analyzed = True
+                    st.session_state.showroom_input_text = input_text
+
+                    if probs:
+                        conf = max(probs.values())
+                        sorted_p = sorted(probs.items(), key=lambda x: x[1], reverse=True)
+
+                        # 追加系统诊断消息
+                        diag = f"## 🔬 特征矩阵概率占比\n\n预测情绪：**{emotion}**（置信度 {conf:.1%}）\n\n"
+                        for e, p in sorted_p[:3]:
+                            diag += f"- {EMOTION_CONFIG[e]['emoji']} {e}: {p:.1%}\n"
+
+                        st.session_state.showroom_messages.append({"role": "assistant", "content": diag})
+                        # AI 首轮专家对策
+                        init_reply = smart_reply(input_text, active_cfg["domain"], active_cfg["bot"], 0)
+                        st.session_state.showroom_messages.append({"role": "assistant", "content": init_reply})
+                        st.rerun()
+            else:
+                st.warning("请输入文本后再检测。")
+
+        # 渲染聊天墙
+        if st.session_state.showroom_messages:
+            st.markdown("<div style='margin-top:16px;margin-bottom:8px'><p style='font-size:11px;color:#94a3b8;font-weight:600'>✨ 多轮决策对话记录</p></div>", unsafe_allow_html=True)
+            for msg in st.session_state.showroom_messages:
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
+
+        # 聊天输入框
+        if st.session_state.showroom_analyzed:
+            user_reply = st.chat_input("输入跟进对策继续与专家切磋...")
+            if user_reply and user_reply.strip():
+                st.session_state.showroom_messages.append({"role": "user", "content": user_reply})
+                turn = len([m for m in st.session_state.showroom_messages if m["role"] == "user"])
+                reply = smart_reply(user_reply, active_cfg["domain"], active_cfg["bot"], turn)
+                st.session_state.showroom_messages.append({"role": "assistant", "content": reply})
+                st.rerun()

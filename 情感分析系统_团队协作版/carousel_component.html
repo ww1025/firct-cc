@@ -10,269 +10,257 @@
       user-select: none; -webkit-user-select: none;
       border-radius: 16px; overflow: hidden;
     }
-    .inside-out-carousel .cio-slides { position:relative; width:100%; height:400px; }
+    .inside-out-carousel .cio-slides { position:relative; width:100%; height:420px; }
     .inside-out-carousel .cio-slide {
       position:absolute; inset:0;
-      opacity:0; transition:opacity .45s ease;
+      opacity:0; transition:opacity .7s ease;
       pointer-events:none;
       border-radius:16px; overflow:hidden;
       display:flex; align-items:center; gap:0; padding:0;
     }
     .inside-out-carousel .cio-slide.active { opacity:1; pointer-events:auto; z-index:2; }
 
-    /* ── 左侧角色区 ── */
     .inside-out-carousel .cio-char-zone {
-      flex:0 0 40%;
-      height:100%;
+      flex:0 0 42%; height:100%;
       display:flex; align-items:center; justify-content:center;
-      position:relative;
+      position:relative; overflow:hidden;
     }
-    .inside-out-carousel .cio-char-emoji {
-      font-size:160px;
-      line-height:1;
-      filter:drop-shadow(0 8px 32px rgba(0,0,0,.3));
-      animation:cio-float 3s ease-in-out infinite;
+    .inside-out-carousel .cio-char-img {
+      max-height:90%; max-width:90%; object-fit:contain;
+      filter:drop-shadow(0 8px 24px rgba(0,0,0,.12));
+      animation:cio-float 4s ease-in-out infinite;
     }
-    @keyframes cio-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    @keyframes cio-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
 
-    /* ── 迪士尼 logo ── */
     .inside-out-carousel .cio-disney-logo {
       position:absolute; top:16px; left:24px;
       font-family:'Brush Script MT','Segoe Script',cursive;
-      font-size:28px; color:rgba(255,255,255,0.4);
-      z-index:5;
+      font-size:26px; color:rgba(0,0,0,0.25); z-index:5;
     }
 
-    /* ── 右侧信息区 ── */
     .inside-out-carousel .cio-info-zone {
       flex:1; height:100%;
       display:flex; flex-direction:column; justify-content:center;
       padding:28px 40px 28px 10px;
     }
     .inside-out-carousel .cio-name-en {
-      font-size:36px; font-weight:900; color:#fff;
+      font-size:32px; font-weight:900; color:#1e293b;
       line-height:1; margin-bottom:2px;
-      text-shadow:0 2px 8px rgba(0,0,0,.3);
     }
     .inside-out-carousel .cio-name-cn {
-      font-size:64px; font-weight:900; color:#fff;
-      line-height:1.1; margin-bottom:16px;
-      text-shadow:0 2px 12px rgba(0,0,0,.3);
+      font-size:60px; font-weight:900; color:#0f172a;
+      line-height:1.1; margin-bottom:14px;
     }
     .inside-out-carousel .cio-info-box {
-      border:2px dashed rgba(255,255,255,0.45);
+      border:2px dashed rgba(0,0,0,0.15);
       border-radius:16px;
       padding:18px 22px;
-      background:rgba(255,255,255,0.08);
-      backdrop-filter:blur(10px);
+      background:rgba(255,255,255,0.55);
+      backdrop-filter:blur(12px);
       max-width:520px;
     }
-    .inside-out-carousel .cio-section { margin-bottom:10px; }
+    .inside-out-carousel .cio-section { margin-bottom:9px; }
     .inside-out-carousel .cio-section:last-child { margin-bottom:0; }
     .inside-out-carousel .cio-section-title {
-      font-size:13px; font-weight:800; color:rgba(255,255,255,0.9);
+      font-size:13px; font-weight:800; color:#334155;
       margin-bottom:3px;
     }
     .inside-out-carousel .cio-section-text {
-      font-size:13px; color:rgba(255,255,255,0.78);
-      line-height:1.7;
+      font-size:13px; color:#475569; line-height:1.7;
     }
 
-    /* ── 箭头 ── */
     .inside-out-carousel .cio-arrow {
       position:absolute; top:50%; transform:translateY(-50%); z-index:10;
       width:42px; height:42px; border-radius:50%;
-      background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);
-      color:#fff; font-size:18px; cursor:pointer;
+      background:rgba(255,255,255,0.7); border:1px solid rgba(0,0,0,0.1);
+      color:#475569; font-size:18px; cursor:pointer;
       display:flex; align-items:center; justify-content:center;
-      transition:all .3s; backdrop-filter:blur(10px);
+      transition:all .3s; backdrop-filter:blur(8px);
     }
-    .inside-out-carousel .cio-arrow:hover { background:rgba(255,255,255,0.3); }
+    .inside-out-carousel .cio-arrow:hover { background:rgba(255,255,255,0.95); }
     .inside-out-carousel .cio-arrow-prev { left:14px; }
     .inside-out-carousel .cio-arrow-next { right:14px; }
 
-    /* ── 指示器 ── */
     .inside-out-carousel .cio-dots {
       display:flex; justify-content:center; gap:10px; margin-top:14px;
     }
     .inside-out-carousel .cio-dot {
       width:10px; height:10px; border-radius:50%;
       border:none; cursor:pointer;
-      background:rgba(255,255,255,0.3);
+      background:rgba(0,0,0,0.15);
       transition:all .3s;
     }
-    .inside-out-carousel .cio-dot.active { transform:scale(1.4); }
+    .inside-out-carousel .cio-dot.active { transform:scale(1.45); }
 
-    /* ── 响应式 ── */
     @media (max-width:768px) {
-      .inside-out-carousel .cio-slides { height:520px; }
+      .inside-out-carousel .cio-slides { height:560px; }
       .inside-out-carousel .cio-slide { flex-direction:column; }
-      .inside-out-carousel .cio-char-zone { flex:0 0 180px; }
-      .inside-out-carousel .cio-char-emoji { font-size:100px; }
+      .inside-out-carousel .cio-char-zone { flex:0 0 210px; }
+      .inside-out-carousel .cio-char-img { max-height:80%; }
       .inside-out-carousel .cio-info-zone { padding:0 20px 20px; align-items:center; text-align:center; }
-      .inside-out-carousel .cio-name-cn { font-size:40px; }
-      .inside-out-carousel .cio-name-en { font-size:24px; }
+      .inside-out-carousel .cio-name-cn { font-size:38px; }
+      .inside-out-carousel .cio-name-en { font-size:22px; }
     }
   </style>
 
   <div class="cio-slides" id="cioSlides">
-    <!-- 0: 乐乐 -->
-    <div class="cio-slide active" style="background:linear-gradient(to right, #ffe8a0 0%, #f9d56e 30%, #e8b820 100%);">
+    <!-- 0: 喜悦 Joy — 暖金奶油渐变 -->
+    <div class="cio-slide active" style="background:linear-gradient(180deg, #fef9e7 0%, #fdf0c8 35%, #f8e0a0 70%, #f0d078 100%);">
       <div class="cio-disney-logo">Disney</div>
-      <div class="cio-char-zone"><div class="cio-char-emoji">😊</div></div>
+      <div class="cio-char-zone"><img class="cio-char-img" src="__IMG_0__" alt="喜悦"></div>
       <div class="cio-info-zone">
         <div class="cio-name-en">Joy</div>
-        <div class="cio-name-cn">乐乐</div>
+        <div class="cio-name-cn">喜悦 / 乐</div>
         <div class="cio-info-box">
-          <div class="cio-section"><div class="cio-section-title">来源:</div><div class="cio-section-text">1.多巴胺 — 奖赏激素<br>2.内啡肽 — 大脑的天然止痛剂<br>3.催产素 — 爱的荷尔蒙<br>4.血清素 — 情绪稳定剂</div></div>
-          <div class="cio-section"><div class="cio-section-title">面部表现:</div><div class="cio-section-text">嘴角朝外朝上扩展，眼笑</div></div>
-          <div class="cio-section"><div class="cio-section-title">主要作用:</div><div class="cio-section-text">使身体能够得到正常的休息，为目标和未来储备充足的热情和力量</div></div>
+          <div class="cio-section"><div class="cio-section-title">来源：</div><div class="cio-section-text">多巴胺与内啡肽的持续分泌</div></div>
+          <div class="cio-section"><div class="cio-section-title">面部表现：</div><div class="cio-section-text">嘴角自然上扬，眼角微带笑意</div></div>
+          <div class="cio-section"><div class="cio-section-title">主要作用：</div><div class="cio-section-text">提升心理能量，增强对未来生活的积极向往</div></div>
         </div>
       </div>
     </div>
 
-    <!-- 1: 忧忧 -->
-    <div class="cio-slide" style="background:linear-gradient(to right, #b8d4f0 0%, #7aafdd 30%, #3d7eb5 100%);">
+    <!-- 1: 悲伤 Sadness — 柔和天蓝渐变 -->
+    <div class="cio-slide" style="background:linear-gradient(180deg, #dbe8f4 0%, #c4d8ec 35%, #a8c8e0 70%, #8ab4d4 100%);">
       <div class="cio-disney-logo">Disney</div>
-      <div class="cio-char-zone"><div class="cio-char-emoji">😢</div></div>
+      <div class="cio-char-zone"><img class="cio-char-img" src="__IMG_1__" alt="悲伤"></div>
       <div class="cio-info-zone">
         <div class="cio-name-en">Sadness</div>
-        <div class="cio-name-cn">忧忧</div>
+        <div class="cio-name-cn">悲伤 / 忧</div>
         <div class="cio-info-box">
-          <div class="cio-section"><div class="cio-section-title">来源:</div><div class="cio-section-text">面对损失、无力维持或实现目标</div></div>
-          <div class="cio-section"><div class="cio-section-title">面部表现:</div><div class="cio-section-text">目光无神，眼皮低垂，唇角下撇，内眉倾斜</div></div>
-          <div class="cio-section"><div class="cio-section-title">主要作用:</div><div class="cio-section-text">促进思维的改变，帮助人适应环境</div></div>
+          <div class="cio-section"><div class="cio-section-title">来源：</div><div class="cio-section-text">面对核心利益损失或目标暂未实现的自然流露</div></div>
+          <div class="cio-section"><div class="cio-section-title">面部表现：</div><div class="cio-section-text">目光低垂，唇角下撇，眉间微蹙</div></div>
+          <div class="cio-section"><div class="cio-section-title">主要作用：</div><div class="cio-section-text">促进深层自我反思，引导个体接受现实并寻求外界关怀</div></div>
         </div>
       </div>
     </div>
 
-    <!-- 2: 怒怒 -->
-    <div class="cio-slide" style="background:linear-gradient(to right, #f8a090 0%, #e8543c 30%, #c03020 100%);">
+    <!-- 2: 愤怒 Anger — 柔和桃红渐变 -->
+    <div class="cio-slide" style="background:linear-gradient(180deg, #fce4d8 0%, #f8d0c0 35%, #f0b8a8 70%, #e8a090 100%);">
       <div class="cio-disney-logo">Disney</div>
-      <div class="cio-char-zone"><div class="cio-char-emoji">😡</div></div>
+      <div class="cio-char-zone"><img class="cio-char-img" src="__IMG_2__" alt="愤怒"></div>
       <div class="cio-info-zone">
         <div class="cio-name-en">Anger</div>
-        <div class="cio-name-cn">怒怒</div>
+        <div class="cio-name-cn">愤怒 / 怒</div>
         <div class="cio-info-box">
-          <div class="cio-section"><div class="cio-section-title">来源:</div><div class="cio-section-text">目的和愿望受到阻碍或一再受到挫折</div></div>
-          <div class="cio-section"><div class="cio-section-title">面部表现:</div><div class="cio-section-text">心率加快，皱眉，眼睛变狭窄，咬紧牙关，面部发红</div></div>
-          <div class="cio-section"><div class="cio-section-title">主要作用:</div><div class="cio-section-text">维护自己的界限，争取自己的利益，为行动提供动力</div></div>
+          <div class="cio-section"><div class="cio-section-title">来源：</div><div class="cio-section-text">个人边界或公平秩序遭受外界侵犯的反扑</div></div>
+          <div class="cio-section"><div class="cio-section-title">面部表现：</div><div class="cio-section-text">眉头紧锁，咬紧牙关，面部涨红</div></div>
+          <div class="cio-section"><div class="cio-section-title">主要作用：</div><div class="cio-section-text">维护自身的正当界限，为消除障碍提供坚实的情感动力</div></div>
         </div>
       </div>
     </div>
 
-    <!-- 3: 怕怕 -->
-    <div class="cio-slide" style="background:linear-gradient(to right, #d8c8f0 0%, #b898d8 30%, #8e68b8 100%);">
+    <!-- 3: 反感 Disgust — 薄荷绿渐变 -->
+    <div class="cio-slide" style="background:linear-gradient(180deg, #d8ecd8 0%, #c0e0c0 35%, #a0d0a0 70%, #80c080 100%);">
       <div class="cio-disney-logo">Disney</div>
-      <div class="cio-char-zone"><div class="cio-char-emoji">😨</div></div>
-      <div class="cio-info-zone">
-        <div class="cio-name-en">Fear</div>
-        <div class="cio-name-cn">怕怕</div>
-        <div class="cio-info-box">
-          <div class="cio-section"><div class="cio-section-title">来源:</div><div class="cio-section-text">"自认为"无法克服、无法掌控、无法知晓的事物或环境</div></div>
-          <div class="cio-section"><div class="cio-section-title">面部表现:</div><div class="cio-section-text">面部会由于血液的流失而发白，可能会僵在原地</div></div>
-          <div class="cio-section"><div class="cio-section-title">主要作用:</div><div class="cio-section-text">集中精力分析当前的威胁，更有效地评估即将采取的行动，为行动做好充分的准备</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 4: 厌厌 -->
-    <div class="cio-slide" style="background:linear-gradient(to right, #b8e8b0 0%, #78c870 30%, #48a838 100%);">
-      <div class="cio-disney-logo">Disney</div>
-      <div class="cio-char-zone"><div class="cio-char-emoji">😒</div></div>
+      <div class="cio-char-zone"><img class="cio-char-img" src="__IMG_3__" alt="反感"></div>
       <div class="cio-info-zone">
         <div class="cio-name-en">Disgust</div>
-        <div class="cio-name-cn">厌厌</div>
+        <div class="cio-name-cn">反感 / 厌</div>
         <div class="cio-info-box">
-          <div class="cio-section"><div class="cio-section-title">来源:</div><div class="cio-section-text">令人不愉悦、反感的事物</div></div>
-          <div class="cio-section"><div class="cio-section-title">面部表现:</div><div class="cio-section-text">上唇撇向一边，鼻头微微皱起。</div></div>
-          <div class="cio-section"><div class="cio-section-title">主要作用:</div><div class="cio-section-text">逃避或者排斥负面刺激。（例如：阻止你摄入可能使你生病的食物）</div></div>
+          <div class="cio-section"><div class="cio-section-title">来源：</div><div class="cio-section-text">面对不愉悦、不文明或违背公序良俗的事物</div></div>
+          <div class="cio-section"><div class="cio-section-title">面部表现：</div><div class="cio-section-text">上唇撇向一侧，鼻头微微皱起</div></div>
+          <div class="cio-section"><div class="cio-section-title">主要作用：</div><div class="cio-section-text">帮助个体本能地排斥负面刺激，维护健康的社交与生活环境</div></div>
         </div>
       </div>
     </div>
 
-    <!-- 5: 慕慕 -->
-    <div class="cio-slide" style="background:linear-gradient(to right, #b0e8e0 0%, #68c8c0 30%, #3898a0 100%);">
+    <!-- 4: 焦虑 Anxiety — 暖杏渐变 -->
+    <div class="cio-slide" style="background:linear-gradient(180deg, #fce8d4 0%, #f8d8c0 35%, #f0c8a8 70%, #e8b890 100%);">
       <div class="cio-disney-logo">Disney</div>
-      <div class="cio-char-zone"><div class="cio-char-emoji">🤩</div></div>
-      <div class="cio-info-zone">
-        <div class="cio-name-en">Envy</div>
-        <div class="cio-name-cn">慕慕</div>
-        <div class="cio-info-box">
-          <div class="cio-section"><div class="cio-section-title">来源:</div><div class="cio-section-text">与他人进行比较、发现自己存在不足时感受到的情绪</div></div>
-          <div class="cio-section"><div class="cio-section-title">面部表现:</div><div class="cio-section-text">大眼睛带星光闪烁，嘴巴微张呈惊讶或渴望状，眉毛上扬</div></div>
-          <div class="cio-section"><div class="cio-section-title">主要作用:</div><div class="cio-section-text">激励自己进步，努力争取自己想要的东西，变得和羡慕对象一样好</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 6: 尴尬 -->
-    <div class="cio-slide" style="background:linear-gradient(to right, #f0c8d8 0%, #e898b0 30%, #d86888 100%);">
-      <div class="cio-disney-logo">Disney</div>
-      <div class="cio-char-zone"><div class="cio-char-emoji">😳</div></div>
-      <div class="cio-info-zone">
-        <div class="cio-name-en">Embarrassment</div>
-        <div class="cio-name-cn">尴尬</div>
-        <div class="cio-info-box">
-          <div class="cio-section"><div class="cio-section-title">来源:</div><div class="cio-section-text">以为他人对自己产生了(真实的/想象的)不好的感觉</div></div>
-          <div class="cio-section"><div class="cio-section-title">面部表现:</div><div class="cio-section-text">脸红、眼睛闪烁、身体僵硬，笑容消失、手部动作减少</div></div>
-          <div class="cio-section"><div class="cio-section-title">主要作用:</div><div class="cio-section-text">控制和调节自己的言行，协调与他人交往的距离和界限</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 7: 丧丧 -->
-    <div class="cio-slide" style="background:linear-gradient(to right, #c8b8e8 0%, #9888c8 30%, #6858a0 100%);">
-      <div class="cio-disney-logo">Disney</div>
-      <div class="cio-char-zone"><div class="cio-char-emoji">😑</div></div>
-      <div class="cio-info-zone">
-        <div class="cio-name-en">Ennui</div>
-        <div class="cio-name-cn">丧丧</div>
-        <div class="cio-info-box">
-          <div class="cio-section"><div class="cio-section-title">来源:</div><div class="cio-section-text">身心疲惫，有些无助、厌倦，还夹杂着自己的失望和对未来的焦虑</div></div>
-          <div class="cio-section"><div class="cio-section-title">面部表现:</div><div class="cio-section-text">无精打采、翻白眼、疏离的样子，甚至对手机重度依赖，没动力</div></div>
-          <div class="cio-section"><div class="cio-section-title">主要作用:</div><div class="cio-section-text">对重复和单调生活的无声抗议</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 8: 焦焦 -->
-    <div class="cio-slide" style="background:linear-gradient(to right, #e8b898 0%, #d89868 30%, #b87040 100%);">
-      <div class="cio-disney-logo">Disney</div>
-      <div class="cio-char-zone"><div class="cio-char-emoji">😰</div></div>
+      <div class="cio-char-zone"><img class="cio-char-img" src="__IMG_4__" alt="焦虑"></div>
       <div class="cio-info-zone">
         <div class="cio-name-en">Anxiety</div>
-        <div class="cio-name-cn">焦焦</div>
+        <div class="cio-name-cn">焦虑 / 慌</div>
         <div class="cio-info-box">
-          <div class="cio-section"><div class="cio-section-title">来源:</div><div class="cio-section-text">对潜在不可预测的威胁的感知</div></div>
-          <div class="cio-section"><div class="cio-section-title">面部表现:</div><div class="cio-section-text">大眼睛、咧嘴笑、头顶火焰状头发</div></div>
-          <div class="cio-section"><div class="cio-section-title">主要作用:</div><div class="cio-section-text">对潜在的危害产生预期，并做好准备以保护自己</div></div>
+          <div class="cio-section"><div class="cio-section-title">来源：</div><div class="cio-section-text">对潜在、不可预测的未来威胁的本能感知</div></div>
+          <div class="cio-section"><div class="cio-section-title">生理状态：</div><div class="cio-section-text">心跳加快、呼吸急促、肌肉紧绷、胸闷出汗</div></div>
+          <div class="cio-section"><div class="cio-section-title">主要作用：</div><div class="cio-section-text">对潜在的风险产生预期，提前做好防范准备</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5: 羡慕 Envy — 浅湖绿渐变 -->
+    <div class="cio-slide" style="background:linear-gradient(180deg, #c8e8e0 0%, #a8dcd0 35%, #80d0c0 70%, #60c0b0 100%);">
+      <div class="cio-disney-logo">Disney</div>
+      <div class="cio-char-zone"><img class="cio-char-img" src="__IMG_5__" alt="羡慕"></div>
+      <div class="cio-info-zone">
+        <div class="cio-name-en">Envy</div>
+        <div class="cio-name-cn">羡慕 / 慕</div>
+        <div class="cio-info-box">
+          <div class="cio-section"><div class="cio-section-title">来源：</div><div class="cio-section-text">与他人进行比较，发现自己存在不足时产生的感受</div></div>
+          <div class="cio-section"><div class="cio-section-title">底层信念：</div><div class="cio-section-text">我不够好。我不相信自己能够得到/做到</div></div>
+          <div class="cio-section"><div class="cio-section-title">主要作用：</div><div class="cio-section-text">激励自我成长与进步，努力争取自己想要的目标</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6: 恐惧 Fear — 淡紫薰衣草渐变 -->
+    <div class="cio-slide" style="background:linear-gradient(180deg, #e4d8f0 0%, #d4c4e8 35%, #c0a8d8 70%, #ac90c8 100%);">
+      <div class="cio-disney-logo">Disney</div>
+      <div class="cio-char-zone"><img class="cio-char-img" src="__IMG_6__" alt="恐惧"></div>
+      <div class="cio-info-zone">
+        <div class="cio-name-en">Fear</div>
+        <div class="cio-name-cn">恐惧 / 惧</div>
+        <div class="cio-info-box">
+          <div class="cio-section"><div class="cio-section-title">来源：</div><div class="cio-section-text">"自认为"无法克服、无法掌控、无法知晓的事物或环境</div></div>
+          <div class="cio-section"><div class="cio-section-title">面部表现：</div><div class="cio-section-text">面部因血液流失而发白，身体可能僵在原地</div></div>
+          <div class="cio-section"><div class="cio-section-title">主要作用：</div><div class="cio-section-text">集中精力分析当前威胁，为应对行动做好充分准备</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7: 尴尬 Embarrassment — 粉红渐变 -->
+    <div class="cio-slide" style="background:linear-gradient(180deg, #f4d8e0 0%, #ecc8d4 35%, #e0b0c0 70%, #d498ac 100%);">
+      <div class="cio-disney-logo">Disney</div>
+      <div class="cio-char-zone"><img class="cio-char-img" src="__IMG_7__" alt="尴尬"></div>
+      <div class="cio-info-zone">
+        <div class="cio-name-en">Embarrassment</div>
+        <div class="cio-name-cn">尴尬 / 尬</div>
+        <div class="cio-info-box">
+          <div class="cio-section"><div class="cio-section-title">来源：</div><div class="cio-section-text">以为他人对自己产生了（真实的或想象的）不好的感觉</div></div>
+          <div class="cio-section"><div class="cio-section-title">面部表现：</div><div class="cio-section-text">脸红、眼神闪躲、身体僵硬，笑容消失、手部动作减少</div></div>
+          <div class="cio-section"><div class="cio-section-title">主要作用：</div><div class="cio-section-text">控制和调节自身言行，协调人际交往中的距离与界限</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8: 倦怠 Ennui — 浅灰蓝紫渐变 -->
+    <div class="cio-slide" style="background:linear-gradient(180deg, #d4d4e8 0%, #c4c4dc 35%, #b0b0d0 70%, #9c9cc4 100%);">
+      <div class="cio-disney-logo">Disney</div>
+      <div class="cio-char-zone"><img class="cio-char-img" src="__IMG_8__" alt="倦怠"></div>
+      <div class="cio-info-zone">
+        <div class="cio-name-en">Ennui</div>
+        <div class="cio-name-cn">倦怠 / 怠</div>
+        <div class="cio-info-box">
+          <div class="cio-section"><div class="cio-section-title">来源：</div><div class="cio-section-text">身心疲惫，伴有无助、厌倦与对未来的隐约焦虑</div></div>
+          <div class="cio-section"><div class="cio-section-title">生理状态：</div><div class="cio-section-text">无精打采、眼神疏离，甚至对电子设备产生重度依赖，缺乏行动动力</div></div>
+          <div class="cio-section"><div class="cio-section-title">主要作用：</div><div class="cio-section-text">对重复、单调与高压生活环境的一种无声抗议</div></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══ 箭头 ═══ -->
   <button class="cio-arrow cio-arrow-prev" onclick="cioPrev()">&#8249;</button>
   <button class="cio-arrow cio-arrow-next" onclick="cioNext()">&#8250;</button>
 
-  <!-- ═══ 指示器 ═══ -->
   <div class="cio-dots" id="cioDots"></div>
 
   <script>
     (function(){
       var slides = document.querySelectorAll('.inside-out-carousel .cio-slide');
       var dotsCt = document.getElementById('cioDots');
-      var cur = 0, total = slides.length, timer = null;
+      var cur = 0, total = slides.length;
+      var autoTimer = null;
+      var PAUSE_MS = 6000;
       var COLORS = [
-        '#e8b820','#3d7eb5','#c03020','#8e68b8','#48a838',
-        '#3898a0','#d86888','#6858a0','#b87040'
+        '#f0d078','#8ab4d4','#e8a090','#80c080','#e8b890',
+        '#60c0b0','#ac90c8','#d498ac','#9c9cc4'
       ];
 
       slides.forEach(function(_,i){
         var d = document.createElement('button');
         d.className = 'cio-dot' + (i===0?' active':'');
-        d.style.background = i===0 ? COLORS[0] : 'rgba(255,255,255,0.3)';
+        d.style.background = COLORS[0];
         d.onclick = function(){ cioGo(i); };
         dotsCt.appendChild(d);
       });
@@ -280,25 +268,29 @@
       function updateDots(){
         document.querySelectorAll('.inside-out-carousel .cio-dot').forEach(function(d,i){
           d.classList.toggle('active', i===cur);
-          d.style.background = i===cur ? COLORS[cur] : 'rgba(255,255,255,0.3)';
+          d.style.background = COLORS[cur];
         });
       }
+      /* set ALL dots to active color immediately on init */
+      updateDots();
 
       window.cioGo = function(idx){
         if(idx===cur) return;
         slides[cur].classList.remove('active');
         slides[idx].classList.add('active');
-        cur = idx; updateDots(); resetTimer();
+        cur = idx; updateDots(); scheduleNext();
       };
       window.cioPrev = function(){ cioGo((cur-1+total)%total); };
       window.cioNext = function(){ cioGo((cur+1)%total); };
 
-      function auto(){ timer = setInterval(function(){ cioNext(); }, 4000); }
-      function resetTimer(){ clearInterval(timer); auto(); }
+      function scheduleNext(){
+        clearTimeout(autoTimer);
+        autoTimer = setTimeout(function(){ cioNext(); }, PAUSE_MS);
+      }
 
       var wrap = document.querySelector('.inside-out-carousel');
-      wrap.addEventListener('mouseenter',function(){ clearInterval(timer); });
-      wrap.addEventListener('mouseleave',function(){ auto(); });
+      wrap.addEventListener('mouseenter',function(){ clearTimeout(autoTimer); });
+      wrap.addEventListener('mouseleave',function(){ scheduleNext(); });
 
       var tx=0;
       wrap.addEventListener('touchstart',function(e){ tx=e.touches[0].clientX; });
@@ -307,7 +299,7 @@
         if(Math.abs(dx)>50){ if(dx<0)cioNext(); else cioPrev(); }
       });
 
-      auto();
+      scheduleNext();
     })();
   </script>
 </div>
