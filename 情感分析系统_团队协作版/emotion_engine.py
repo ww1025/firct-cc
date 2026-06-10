@@ -130,9 +130,13 @@ def predict(text: str) -> Tuple[Optional[str], Optional[Dict[str, float]]]:
 
     Returns:
         (predicted_emotion_cn, probabilities_dict)
-        ─ 清洗后文本为空时返回 (None, None)
-        ─ probabilities_dict 的 key 为中文情感名
+        — 清洗后文本为空时返回 (None, None)
+        — probabilities_dict 的 key 为中文情感名
     """
+    from sklearn.multiclass import OneVsRestClassifier
+    from sklearn.svm import LinearSVC
+    from sklearn.preprocessing import MinMaxScaler
+
     model, vectorizer, classes_cn = load_models()
 
     cleaned = clean_text(text)
@@ -141,10 +145,30 @@ def predict(text: str) -> Tuple[Optional[str], Optional[Dict[str, float]]]:
 
     X = vectorizer.transform([cleaned])
     pred_idx = model.predict(X)[0]
-    proba = model.predict_proba(X)[0]
+
+    # ========== 关键兼容逻辑：区分 LinearSVC（无 predict_proba）==========
+    is_linear_svc = False
+    if isinstance(model, OneVsRestClassifier):
+        first_estimator = model.estimators_[0]
+        if isinstance(first_estimator, LinearSVC):
+            is_linear_svc = True
+
+    if is_linear_svc:
+        # LinearSVC 用 decision_function 模拟概率
+        decision_vals = model.decision_function(X)[0]
+        if len(model.classes_) == 2 and len(decision_vals.shape) == 0:
+            decision_vals = np.array([-decision_vals, decision_vals])
+
+        scaler = MinMaxScaler()
+        probabilities = scaler.fit_transform(decision_vals.reshape(-1, 1)).flatten()
+        probabilities = probabilities / np.sum(probabilities)
+    else:
+        # 其他模型（LogisticRegression 等）用原生 predict_proba
+        probabilities = model.predict_proba(X)[0]
+    # ================================================================
 
     pred_cn = classes_cn[pred_idx]
-    probs = {classes_cn[i]: float(proba[i]) for i in range(len(classes_cn))}
+    probs = {classes_cn[i]: float(probabilities[i]) for i in range(len(classes_cn))}
     return pred_cn, probs
 
 
