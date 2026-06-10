@@ -1,31 +1,14 @@
-@echo off
-chcp 65001 >nul
 cd /d "%~dp0"
 
-echo ============================================
-echo   Emotion Analysis System - ZJU
-echo ============================================
-echo.
-
 if not exist "%~dp0sklearn_emotion_model.pkl" (
-    echo [ERROR] sklearn_emotion_model.pkl not found!
-    echo Please make sure all files are extracted.
+    echo Model file not found! Please EXTRACT all files first.
+    echo Right-click the ZIP -> Extract All -> then run this bat again.
     pause
     exit /b 1
 )
 
-if not exist "%~dp0tfidf_vectorizer.pkl" (
-    echo [ERROR] tfidf_vectorizer.pkl not found!
-    pause
-    exit /b 1
-)
-
-echo [OK] All model files found.
-echo.
-
-echo Starting Streamlit...
-echo Open: http://localhost:8501
-echo.
+echo Starting Emotion Analysis System...
+echo Opening http://localhost:8501
 
 start "" http://localhost:8501
 python -m streamlit run "%~dp0app.py" --server.headless true --server.port 8501
