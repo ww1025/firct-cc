@@ -1,28 +1,33 @@
 @echo off
+chcp 65001 >nul
 cd /d "%~dp0"
-echo === ZJU Emotion Analysis ===
-echo Dir: %CD%
+
+echo ============================================
+echo   Emotion Analysis System - ZJU
+echo ============================================
 echo.
 
-taskkill /f /im python.exe >nul 2>&1
-if exist __pycache__ rmdir /s /q __pycache__ 2>nul
-if exist "%USERPROFILE%\.streamlit\cache" rmdir /s /q "%USERPROFILE%\.streamlit\cache" 2>nul
+if not exist "%~dp0sklearn_emotion_model.pkl" (
+    echo [ERROR] sklearn_emotion_model.pkl not found!
+    echo Please make sure all files are extracted.
+    pause
+    exit /b 1
+)
 
-echo Step 1/3: Check models...
-if not exist "sklearn_emotion_model.pkl" (echo ERROR: model missing! & pause & exit /b 1)
-if not exist "tfidf_vectorizer.pkl" (echo ERROR: vectorizer missing! & pause & exit /b 1)
-if not exist "processed_data.npz" (echo ERROR: data missing! & pause & exit /b 1)
-echo   OK
+if not exist "%~dp0tfidf_vectorizer.pkl" (
+    echo [ERROR] tfidf_vectorizer.pkl not found!
+    pause
+    exit /b 1
+)
 
-echo Step 2/3: Test load...
-python -c "from emotion_engine import load_models; m,v,c=load_models(); print('   OK:', c)"
-if %errorlevel% neq 0 (echo FAILED! & pause & exit /b 1)
+echo [OK] All model files found.
+echo.
 
-echo Step 3/3: Start Streamlit...
-echo ========================================
-echo   http://localhost:8501
-echo   Press Ctrl+C to stop
-echo ========================================
-start http://localhost:8501
-python -m streamlit run app.py --server.headless true --server.port 8501
+echo Starting Streamlit...
+echo Open: http://localhost:8501
+echo.
+
+start "" http://localhost:8501
+python -m streamlit run "%~dp0app.py" --server.headless true --server.port 8501
+
 pause
