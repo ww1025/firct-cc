@@ -64,7 +64,8 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] {
 # ============================================================
 # 导入真实 Python 后端模块
 # ============================================================
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 import news_fetcher
 import emotion_engine
 
@@ -121,7 +122,7 @@ EXAMPLES = [
 # ============================================================
 # 浙大 Logo Banner（全局）
 # ============================================================
-with open(os.path.join("assets", "zju_logo.jpg"), "rb") as _fl:
+with open(os.path.join(BASE_DIR, "assets", "zju_logo.jpg"), "rb") as _fl:
     _logo_b64 = base64.b64encode(_fl.read()).decode()
 st.markdown(f"""<div style='display:flex;align-items:center;justify-content:center;gap:16px;padding:10px 0 8px 0;'>
 <img src='data:image/jpeg;base64,{_logo_b64}' style='height:50px' alt='浙江大学'>
@@ -155,10 +156,10 @@ for _idx, (_key, _label) in enumerate(NAV_ITEMS):
 # ============================================================
 
 def _carousel():
-    with open("carousel_component.html", "r", encoding="utf-8") as f:
+    with open(os.path.join(BASE_DIR, "carousel_component.html"), "r", encoding="utf-8") as f:
         h = f.read()
     for i, cn in enumerate(["乐乐","忧忧","怒怒","厌厌","焦焦","慕慕","怕怕","尴尬","丧丧"]):
-        with open(os.path.join("assets", "characters", f"{cn}.jpg"), "rb") as f2:
+        with open(os.path.join(BASE_DIR, "assets", "characters", f"{cn}.jpg"), "rb") as f2:
             uri = f"data:image/jpeg;base64,{base64.b64encode(f2.read()).decode()}"
         h = h.replace(f"__IMG_{i}__", uri)
     components.html(h, height=480, scrolling=False)
@@ -285,7 +286,7 @@ elif _cur == "intel":
                     "total": total,
                     "emotions": classified if classified else {},
                 }
-                with open("news_cache.json", "w", encoding="utf-8") as _f:
+                with open(os.path.join(BASE_DIR, "news_cache.json"), "w", encoding="utf-8") as _f:
                     json.dump(cache, _f, ensure_ascii=False, indent=2)
 
                 bar.progress(100, text=f"✅ 完成！共获取 {total} 条热点，已写入缓存")

@@ -12,6 +12,8 @@ import jieba
 import pandas as pd
 from typing import Tuple, Dict, Optional, List
 
+import os
+
 # =============================================================================
 # pickle 兼容：sklearn 1.8 → 1.9 版本迁移
 # 训练脚本中 TfidfVectorizer(tokenizer=identity_tokenizer)，pickle 序列化为
@@ -83,19 +85,23 @@ _global_classes_cn: List[str] = []
 
 
 def load_models(
-    model_path: str = "sklearn_emotion_model.pkl",
-    vectorizer_path: str = "tfidf_vectorizer.pkl",
-    data_path: str = "processed_data.npz",
+    model_path: str = None,
+    vectorizer_path: str = None,
+    data_path: str = None,
 ) -> Tuple:
-    """加载模型、TF-IDF 向量器和中文类别标签。
-
-    使用模块级缓存：多次调用不会重复加载。
-    返回 (model, vectorizer, classes_cn)
-    """
+    """加载模型、TF-IDF 向量器和中文类别标签。"""
     global _global_model, _global_vectorizer, _global_classes_cn
 
     if _global_model is not None:
         return _global_model, _global_vectorizer, _global_classes_cn
+
+    _base = os.path.dirname(os.path.abspath(__file__))
+    if model_path is None:
+        model_path = os.path.join(_base, "sklearn_emotion_model.pkl")
+    if vectorizer_path is None:
+        vectorizer_path = os.path.join(_base, "tfidf_vectorizer.pkl")
+    if data_path is None:
+        data_path = os.path.join(_base, "processed_data.npz")
 
     with open(model_path, "rb") as f:
         _global_model = pickle.load(f)
