@@ -6,61 +6,68 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:"Microsoft YaHei","微软雅黑",sans-serif;background:#1a1a2e;color:#ddd;min-height:100vh}
-.top-bar{background:linear-gradient(135deg,#8B0000,#c0392b);padding:16px 20px;text-align:center}
-.top-bar h1{font-size:23px;letter-spacing:3px;color:#fff}.top-bar .sub{font-size:12px;color:#ffcccc;margin-top:3px}
-.main-wrap{max-width:1900px;margin:0 auto;padding:10px}
-.panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;margin-bottom:12px}
+body{font-family:"Microsoft YaHei","微软雅黑",sans-serif;background:#1a1a2e;color:#ddd}
+.top-bar{background:linear-gradient(135deg,#8B0000,#c0392b);padding:14px 20px;text-align:center}
+.top-bar h1{font-size:22px;letter-spacing:3px;color:#fff}.top-bar .sub{font-size:12px;color:#ffcccc;margin-top:2px}
+.main-wrap{max-width:100%;margin:0 auto;padding:8px}
+.panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;margin-bottom:10px}
 .panel h3{color:#f39c12;margin-bottom:6px;font-size:14px}
-.panel textarea{width:100%;height:105px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#ddd;padding:10px;font-family:"Microsoft YaHei",sans-serif;font-size:13px;resize:vertical;line-height:1.8}
+.panel textarea{width:100%;height:100px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:#ddd;padding:8px;font-family:"Microsoft YaHei",sans-serif;font-size:13px;resize:vertical;line-height:1.7}
 .panel textarea:focus{outline:none;border-color:#c0392b}
-.btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
-.btn{padding:8px 18px;border-radius:7px;font-size:13px;cursor:pointer;border:none;font-weight:bold;transition:.2s}
-.btn-go{background:#c0392b;color:#fff;font-size:15px;padding:10px 32px}.btn-go:hover{background:#e74c3c}
-.btn-export{background:#27ae60;color:#fff;font-size:15px;padding:10px 32px}.btn-export:hover{background:#2ecc71}
+.btn-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center}
+.btn{padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;border:none;font-weight:bold;transition:.2s}
+.btn-go{background:#c0392b;color:#fff;font-size:14px;padding:10px 28px}.btn-go:hover{background:#e74c3c}
+.btn-export{background:#27ae60;color:#fff;font-size:14px;padding:10px 28px}.btn-export:hover{background:#2ecc71}
 .btn-out{background:transparent;border:1px solid #888;color:#ccc}.btn-out:hover{background:rgba(255,255,255,.08)}
-.check-panel{background:rgba(0,0,0,.2);border-radius:8px;padding:10px 14px;margin-top:8px;font-size:12px;line-height:2.2;display:none}
+.check-panel{background:rgba(0,0,0,.2);border-radius:6px;padding:8px 12px;margin-top:8px;font-size:12px;line-height:2.2;display:none}
 .check-panel .pass{color:#27ae60}.check-panel .fail{color:#e74c3c}
 .check-title{font-weight:bold;color:#f39c12;margin-bottom:4px;font-size:13px}
 .tab-nav{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
-.tab-btn{padding:7px 16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:7px 7px 0 0;color:#aaa;cursor:pointer;font-size:13px;transition:.2s}
+.tab-btn{padding:6px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px 6px 0 0;color:#aaa;cursor:pointer;font-size:13px;transition:.2s}
 .tab-btn:hover{background:rgba(255,255,255,.1);color:#fff}
 .tab-btn.active{background:rgba(195,57,43,.3);border-color:#c0392b;color:#fff;font-weight:bold}
-.table-section{margin-bottom:18px}
-.table-section h2{color:#f39c12;font-size:16px;padding:6px 0;border-bottom:2px solid rgba(195,57,43,.3);margin-bottom:8px}
-.xl-wrap{overflow-x:auto}
-.xlt{border-collapse:collapse;width:100%;font-size:12px}
-.xlt td,.xlt th{border:1px solid rgba(255,255,255,.2);padding:3px 5px;text-align:center;white-space:nowrap;vertical-align:middle}
-.xlt th{background:rgba(139,0,0,.35);color:#f39c12;font-weight:bold}
-.xlt td{background:rgba(255,255,255,.03)}
-.t1-table .class-gap td{background:rgba(195,57,43,.08);border-top:2px solid rgba(195,57,43,.3);height:3px}
-.t1-table .footer-note td{background:rgba(0,0,0,.2);color:#999;font-size:11px;text-align:left;padding:5px 8px}
-.t1-table .changed{background:rgba(255,255,0,.12)!important}
-.t1-table .duty-mark{color:#27ae60;font-weight:bold;margin-left:2px}
-.cab-num{background:rgba(139,0,0,.4)!important;color:#f39c12!important;font-weight:bold;font-size:14px}
-.title-row td{background:rgba(139,0,0,.5)!important;color:#fff!important;font-weight:bold;font-size:15px;text-align:center;letter-spacing:3px}
-.empty-slot{color:#555}
-.yellow-cell{background:rgba(255,255,0,.15)!important}
-.red-text{color:#e74c3c!important}
-.shelf{background:rgba(100,100,100,.35)!important;color:#aaa!important;font-weight:bold;font-size:14px;letter-spacing:2px}
-.has-user .un{color:#f39c12;font-size:10px}
-.yellow-fill{background:rgba(255,255,0,.15)!important}
+.table-section{margin-bottom:16px}
+.table-section h2{color:#f39c12;font-size:15px;padding:4px 0;border-bottom:2px solid rgba(195,57,43,.3);margin-bottom:8px}
+
+/* Excel 1:1 복刻 表格样式 */
+.xl-wrap{overflow-x:auto;overflow-y:visible}
+.xl-table{border-collapse:collapse;table-layout:fixed;font-size:11px;font-family:"Microsoft YaHei","微软雅黑",sans-serif}
+.xl-table td,.xl-table th{border:1px solid #666;padding:2px 4px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xl-table th{background:#1a3a5c;color:#f39c12;font-weight:bold}
+.xl-table td{background:#1e1e2e;color:#ccc}
+.xl-table .cab-num{background:#2a1a1a!important;color:#f39c12!important;font-weight:bold;font-size:16px;letter-spacing:2px;width:40px}
+.xl-table .title-row td{background:#2a1a1a!important;color:#fff!important;font-weight:bold;font-size:16px;text-align:center;letter-spacing:3px;padding:4px}
+.xl-table .empty-slot{color:#555}
+.xl-table .yellow-bg{background:#4a4a00!important;color:#ffe066!important;font-weight:bold}
+.xl-table .red-text{color:#e74c3c!important;font-weight:bold}
+.xl-table .note-red{color:#e74c3c;font-size:11px;text-align:left;background:#3a1a1a!important}
+.xl-table .shelf{background:#3a3a3a!important;color:#aaa;font-weight:bold;font-size:14px;letter-spacing:2px}
+.xl-table .has-user .un{color:#f39c12;font-size:10px}
+.xl-table .red-bg{background:#4a0000!important}
+.xl-table .dress-col{width:100px}.xl-table .belt-col{width:50px}.xl-table .name-col{width:140px}
+
 @media print{
 body{background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .top-bar,.panel,.btn-row,.check-panel,.btn,.tab-nav{display:none!important}
 .table-section{display:block!important;page-break-inside:avoid}
 .main-wrap{padding:0;max-width:100%}
-.xlt th{background:#e8e8e8!important;color:#000!important}
-.xlt td{background:#fff!important;color:#000!important}
-.t1-table .changed,.yellow-cell{background:#fff9c4!important}
-.xlt,.xlt th,.xlt td{border-color:#999!important}
-.cab-num,.title-row td{background:#ddd!important;color:#000!important}
+.xl-table td,.xl-table th{border-color:#000!important}
+.xl-table th{background:#e0e0e0!important;color:#000!important}
+.xl-table td{background:#fff!important;color:#000!important}
+.xl-table .cab-num{background:#ddd!important;color:#000!important}
+.xl-table .title-row td{background:#ddd!important;color:#000!important}
+.xl-table .yellow-bg{background:#fff9c4!important;color:#000!important}
+.xl-table .red-text{color:#c00!important}
+.xl-table .red-bg{background:#ffcccc!important}
+.xl-table .shelf{background:#e0e0e0!important;color:#000!important}
+.xl-table .note-red{background:#ffe0e0!important;color:#c00!important}
 }
 </style>
 </head>
 <body>
 <div class="top-bar"><h1>国旗仪仗队礼服分配系统</h1><div class="sub">装备分配 · 礼服腰带摆放 · 礼帽摆放 · 马靴摆放</div></div>
 <div class="main-wrap">
+
 <div class="panel">
 <h3>当周排班表（粘贴周一~周五执勤名单，每行一天）</h3>
 <textarea id="schedInput" placeholder="周一：方嫄、张鹏、江文欣、岳佳凝、沈昊、韩雅丽、夏瑞泽、顾铭文、吴昕桐、李诗诗、胡思源、郭婷心、陈涵予、孜英
@@ -75,16 +82,19 @@ body{background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adj
 </div>
 <div class="check-panel" id="checkPanel"></div>
 </div>
+
 <div class="tab-nav">
 <button class="tab-btn active" onclick="switchTab(0)">表1：装备分配</button>
 <button class="tab-btn" onclick="switchTab(1)">表2：礼服腰带摆放</button>
 <button class="tab-btn" onclick="switchTab(2)">表3：礼帽摆放</button>
 <button class="tab-btn" onclick="switchTab(3)">表4：马靴摆放</button>
 </div>
+
 <div class="table-section" id="sec0"><h2>表1：装备分配</h2><div class="xl-wrap" id="t1"></div></div>
 <div class="table-section" id="sec1" style="display:none"><h2>表2：礼服腰带摆放</h2><div class="xl-wrap" id="t2"></div></div>
 <div class="table-section" id="sec2" style="display:none"><h2>表3：礼帽摆放</h2><div class="xl-wrap" id="t3"></div></div>
 <div class="table-section" id="sec3" style="display:none"><h2>表4：马靴摆放</h2><div class="xl-wrap" id="t4"></div></div>
+
 </div>
 
 <script>
@@ -130,26 +140,52 @@ const BASE={};
 '努尔加娜特,M180/96-06,M5810,X42','张子昂,M180/100-01,M5602,X42','李承哲,M185/96-01,M5904,N43/43','顾铭文,M185/100-02,M5801,X43'
 ].forEach(s=>{const[n,d,h,b]=s.split(',');BASE[n]={礼服:d,礼帽:h,马靴:b};});
 
-// ============== 表2：礼服腰带摆放 — 春四周固定模板，每行[柜1礼服,腰带,使用人,柜2...]共6柜×3列 ==============
-// 使用人为空字符串，渲染时动态从A[name].礼服查询填入
-const DRESS_CAB_TPL = [
-  ['F165/80-01','F01','', 'F165/88-01','F07','', 'F175/88-02','','', 'F170/84-01','F11','', 'F170/92-01','F17','', 'M180/96-08','',''],
-  ['F165/80-02','F02','', 'F165/88-02','F08','', 'F175/92-01','F20','', 'F170/84-02','F12','', 'F170/92-02','F18','', 'M180/96-09','',''],
-  ['F165/84-01','F03','', 'F165/88-03','F09','', 'F175/92-02','','', 'F170/84-03','F13','', 'M180/96-01','M16','', 'M180/100-02','',''],
-  ['F165/84-02','F04','', 'F165/88-04','F10','', 'M175/96-01','M04','', 'F170/84-04','F14','', 'M180/96-02','M17','', 'M180/100-03','',''],
-  ['F165/84-03','F05','', 'F175/88-01','F19','', 'M175/96-02','M05','', 'F170/84-05','','', 'M180/96-03','M18','', 'M180/100-04','',''],
-  ['F165/84-04','','',  'M180/92-05','M12','', 'M175/96-03','M06','', 'F170/84-06','F06','', 'M180/96-04','M19','', 'M180/100-05','',''],
-  ['F165/84-05','','',  'M180/92-06','M13','', 'M175/96-04','M07','', 'F170/88-01','F15','', 'M180/96-05','M15','', 'M185/96-01','M26',''],
-  ['M175/88-01','M01','', 'M180/92-07','','',  'M180/92-01','M08','', 'F170/88-02','F16','', 'M180/100-01','M23','', 'M185/96-02','M27',''],
-  ['M175/88-02','M02','', 'M180/92-08','','',  'M180/92-02','M09','', 'F170/88-03','','',  'M180/92-09','','',  'M185/100-01','M24',''],
-  ['M175/92-01','M03','', 'M180/92-10','','',  'M180/92-03','M10','', 'M180/96-06','M21','', 'M180/92-12','','',  'M185/100-02','M25',''],
-  ['M175/92-02','M20','', 'M180/92-11','','',  'M180/92-04','M11','', 'M180/96-07','M22','', '','','',                'M185/100-03','M14','']
+// ========== 表2：礼服腰带摆放数据（从春四周Excel逐格提取） ==========
+// 每个数组元素是一个柜子; 每行[礼服,腰带,使用人(留空=动态填充)]
+const DC_TPL = [
+  [ // 柜一
+    ['F165/80-01','F01',''],['F165/80-02','F02',''],['F165/84-01','F03',''],
+    ['F165/84-02','F04',''],['F165/84-03','F05',''],['F165/84-04','',''],
+    ['F165/84-05','',''],['M175/88-01','M01',''],['M175/88-02','M02',''],
+    ['M175/92-01','M03',''],['M175/92-02','M20','']
+  ],
+  [ // 柜二
+    ['F165/88-01','F07',''],['F165/88-02','F08',''],['F165/88-03','F09',''],
+    ['F165/88-04','F10',''],['F175/88-01','F19',''],['M180/92-05','M12',''],
+    ['M180/92-06','M13',''],['M180/92-07','',''],['M180/92-08','',''],
+    ['M180/92-10','',''],['M180/92-11','','']
+  ],
+  [ // 柜三
+    ['F175/88-02','',''],['F175/92-01','F20',''],['F175/92-02','',''],
+    ['M175/96-01','M04',''],['M175/96-02','M05',''],['M175/96-03','M06',''],
+    ['M175/96-04','M07',''],['M180/92-01','M08',''],['M180/92-02','M09',''],
+    ['M180/92-03','M10',''],['M180/92-04','M11','']
+  ],
+  [ // 柜四
+    ['F170/84-01','F11',''],['F170/84-02','F12',''],['F170/84-03','F13',''],
+    ['F170/84-04','F14',''],['F170/84-05','',''],['F170/84-06','F06',''],
+    ['F170/88-01','F15',''],['F170/88-02','F16',''],['F170/88-03','',''],
+    ['M180/96-06','M21',''],['M180/96-07','M22','']
+  ],
+  [ // 柜五
+    ['F170/92-01','F17',''],['F170/92-02','F18',''],['M180/96-01','M16',''],
+    ['M180/96-02','M17',''],['M180/96-03','M18',''],['M180/96-04','M19',''],
+    ['M180/96-05','M15',''],['M180/100-01','M23',''],['M180/92-09','',''],
+    ['M180/92-12','',''],['','','']
+  ],
+  [ // 柜六
+    ['M180/96-08','',''],['M180/96-09','',''],['M180/100-02','',''],
+    ['M180/100-03','',''],['M180/100-04','',''],['M180/100-05','',''],
+    ['M185/96-01','M26',''],['M185/96-02','M27',''],['M185/100-01','M24',''],
+    ['M185/100-02','M25',''],['M185/100-03','M14','']
+  ]
 ];
-// 表2 黄色填充礼服(春四周marker)
-const DC_YELLOW = new Set(['F175/88-02','M180/96-08','M180/96-09','F175/92-02','F170/84-05','F165/84-04','M180/100-05','F165/84-05','F170/88-03','M180/92-10','M180/92-12','M180/92-11','M185/100-03','M14']);
+const DC_YELLOW=new Set(['F175/88-02','M180/96-08','M180/96-09','F175/92-02','F170/84-05','F165/84-04','M180/100-05','F165/84-05','F170/88-03','M180/92-10','M180/92-12','M180/92-11','M185/100-03','M14']);
+const DC_RED=[['艾克达','卢格妤'],['许诺','余佳卉'],['祁子谦','段茗萱'],['江文欣','董欢瑶'],['章晏华','张子恒']];
+const DC_RED_SET=new Set(DC_RED.flat());
 
-// ============== 表3：礼帽摆放 — 春四周固定模板，11行×6列 ==============
-const HAT_CAB_TPL = [
+// ========== 表3：礼帽摆放数据（从春四周逐格提取，11行×6列） ==========
+const HC_TPL = [
   ['F5501','F5505','F5604','F5608','F5703','F5707'],
   ['F5502','F5601','F5605','F5609','F5704','F5708'],
   ['F5503','F5602','F5606','F5610','F5705','F5709'],
@@ -162,11 +198,11 @@ const HAT_CAB_TPL = [
   ['M5704','M5710','M5805','M5810','M5902','M6001'],
   ['','','','M5811','','M6002']
 ];
-// 表3黄色：F5609,F5708,F5709,M5814,M5708,M5815,M5709,M5905,M6001
-const HC_YELLOW = new Set(['F5609','F5708','F5709','M5814','M5708','M5815','M5709','M5905','M6001']);
+const HC_YELLOW=new Set(['F5609','F5708','F5709','M5814','M5708','M5815','M5709','M5905','M6001']);
+const HC_RED=new Set(['M5812','M5813','M5809']);
 
-// ============== 表4：马靴摆放 — 春四周固定14列×11行网格 ==============
-const BOOT_GRID = [
+// ========== 表4：马靴摆放（14列×11行） ==========
+const BG_TPL = [
   ['X44-05','X44-04','X43-08','X44-06','X39-02','N43/41-01','N43/41-02','N43/43-01','N43/43-02','N43/43-03','N43/46','N44/44.5','X42-22','X42-23'],
   ['X43-04','X43-05','X43-06','X43-07','X39-01','N42/42.5-02','N42/42.5-03','N42/42.5-04','N42/43.5-02','N42/44','N42/44.5','N45/45','X42-19','X42-21'],
   ['置物架','','','X43-03','X38-04','N42/40.5-02','N42/40.5-03','N42/40.5-04','N42/43-01','N42/43-02','N42/43.5-01','置物架','',''],
@@ -179,8 +215,10 @@ const BOOT_GRID = [
   ['','','X45-01','J41-01','X36-01','N36/38-02','N36/39','N37/36.5','N37/37-01','N37/37-02','N37/37-03','X41-01','X41-02','X41-03'],
   ['','','X39-03','X39-04','J36-02','N35/36-01','N35/37','N36/36-01','N36/36-02','N36/37','N36/38-01','X39-06','X39-07','X39-09']
 ];
+const BG_YELLOW=new Set(['X39-02','X45-01']);
+const BG_RED=new Set(['X43-01']);
 
-// ======================== STATE ========================
+// ==================== STATE ====================
 let A={},S={},checkResults=[];
 
 function initA(){
@@ -191,32 +229,21 @@ function initA(){
   }
   computeNotes();
 }
-
 function computeNotes(){
   for(const p of PEOPLE)A[p.name].备注='';
   function group(f){const m={};for(const p of PEOPLE){const v=A[p.name][f];if(!v)continue;if(!m[v])m[v]=[];m[v].push(p.name);}return m;}
   function add(n,t){if(!t)return;A[n].备注=A[n].备注?A[n].备注+'、'+t:t;}
   for(const[f,lb]of[['礼服','礼服'],['礼帽','礼帽'],['马靴','马靴']]){
     const g=group(f);
-    for(const[eq,names]of Object.entries(g)){
-      if(names.length>1)for(const n of names)add(n,`和${names.filter(x=>x!==n).join('、')}共用${lb}`);
-    }
+    for(const[eq,names]of Object.entries(g))if(names.length>1)for(const n of names)add(n,`和${names.filter(x=>x!==n).join('、')}共用${lb}`);
   }
 }
-
 function parseSched(text){
   const days=['周一','周二','周三','周四','周五'],r={};for(const d of days)r[d]=[];
   if(!text.trim())return r;
-  for(const line of text.split('\n')){
-    for(const d of days){
-      if(line.includes(d)||line.includes(d.replace('周','星期'))){
-        const p=line.split(/[：:]/);if(p.length>=2)r[d]=p[1].split(/[、，,\s]+/).map(s=>s.trim()).filter(Boolean);
-      }
-    }
-  }
+  for(const line of text.split('\n'))for(const d of days)if(line.includes(d)||line.includes(d.replace('周','星期'))){const p=line.split(/[：:]/);if(p.length>=2)r[d]=p[1].split(/[、，,\s]+/).map(s=>s.trim()).filter(Boolean);}
   return r;
 }
-
 function autoAllocate(){
   const usage={礼服:{},礼帽:{},马靴:{},腰带:{}};
   function ok(eq,f,dd){if(!eq)return true;const u=usage[f][eq]||[];if(u.length>=2)return false;for(const o of u)for(const d of dd)if((S[d]||[]).includes(o))return false;return true;}
@@ -234,65 +261,67 @@ function autoAllocate(){
   }
   computeNotes();
 }
-
 function selfCheck(){
   const r=[],days=['周一','周二','周三','周四','周五'];let cc=0;
   for(const day of days){const names=S[day]||[];if(!names.length)continue;for(const f of['礼服','礼帽','马靴','腰带']){const em={};for(const n of names){const v=A[n]&&A[n][f];if(!v)continue;if(!em[v])em[v]=[];em[v].push(n);}for(const[eq,ns]of Object.entries(em))if(ns.length>1){cc++;r.push({ok:false,msg:`${day} ${ns.join('、')}共用${f}「${eq}」`});}}}
   r.push({ok:cc===0,msg:`1 每日装备冲突：${cc===0?'无冲突':'发现'+cc+'处冲突'}`});
-  let be=0;for(const p of PEOPLE){const a=A[p.name];if(!a.礼服)continue;const bm=p.sex==='F'?BELT_F:BELT_M,ex=bm[a.礼服];if(ex&&a.腰带!==ex){be++;r.push({ok:false,msg:`${p.name} 礼服${a.礼服}腰带应为${ex}实为${a.腰带}`});}}
+  let be=0;for(const p of PEOPLE){const a=A[p.name];if(!a.礼服)continue;const bm=p.sex==='F'?BELT_F:BELT_M,ex=bm[a.礼服];if(ex&&a.腰带!==ex){be++;}}
   r.push({ok:be===0,msg:`2 礼服腰带绑定：${be===0?'全部正确':'发现'+be+'处错配'}`});
   let ne=0;function en(note){const ns=[];const re=/和([^共]+)共用/g;let m;while((m=re.exec(note))!==null)for(const s of m[1].split('、')){const t=s.trim();if(t)ns.push(t);}return ns;}
-  for(const p of PEOPLE){const note=A[p.name].备注||'';for(const o of en(note)){if(!(A[o]||{}).备注||!(A[o].备注.includes(p.name))){ne++;r.push({ok:false,msg:`${p.name}→${o} 备注未双向`});}}}
+  for(const p of PEOPLE){const note=A[p.name].备注||'';for(const o of en(note)){if(!(A[o]||{}).备注||!(A[o].备注.includes(p.name)))ne++;}}
   r.push({ok:ne===0,msg:`3 共用关系双向：${ne===0?'全部完整':'发现'+ne+'处遗漏'}`});
-  let ie=0;for(const p of PEOPLE){const a=A[p.name],isF=p.sex==='F';if(a.礼服&&!(isF?DRESS_F:DRESS_M).includes(a.礼服)){ie++;}if(a.礼帽&&!(isF?HAT_F:HAT_M).includes(a.礼帽)){ie++;}if(a.马靴&&!BOOTS.includes(a.马靴)){ie++;}}
+  let ie=0;for(const p of PEOPLE){const a=A[p.name],isF=p.sex==='F';if(a.礼服&&!(isF?DRESS_F:DRESS_M).includes(a.礼服))ie++;if(a.礼帽&&!(isF?HAT_F:HAT_M).includes(a.礼帽))ie++;if(a.马靴&&!BOOTS.includes(a.马靴))ie++;}
   r.push({ok:ie===0,msg:`4 装备编号合法：${ie===0?'全部有效':'发现'+ie+'处非法'}`});
   let se=0;for(const p of PEOPLE){const a=A[p.name];if(p.sex==='F'){if(a.礼服&&a.礼服.startsWith('M'))se++;if(a.礼帽&&a.礼帽.startsWith('M'))se++;}else{if(a.礼服&&a.礼服.startsWith('F'))se++;if(a.礼帽&&a.礼帽.startsWith('F'))se++;}}
   r.push({ok:se===0,msg:`5 男女装备混用：${se===0?'无混用':'发现'+se+'处混用'}`});
   checkResults=r;return r;
 }
 
-// ======================== RENDER ========================
+// ==================== RENDER ====================
 function ren1(){
   const dutySet=new Set();for(const d of Object.values(S))for(const n of d)dutySet.add(n);
-  let prevCls=0,h=`<table class="xlt t1-table"><thead><tr><th>班级</th><th>姓名</th><th>礼服</th><th>礼帽</th><th>马靴</th><th>腰带</th><th>备注</th></tr></thead><tbody>`;
+  let prevCls=0,h=`<table class="xl-table" style="width:100%"><thead><tr><th style="width:40px">班级</th><th style="width:65px">姓名</th><th style="width:110px">礼服</th><th style="width:80px">礼帽</th><th style="width:100px">马靴</th><th style="width:60px">腰带</th><th style="min-width:260px">备注</th></tr></thead><tbody>`;
   for(const p of PEOPLE){
-    if(p.cls!==prevCls){if(prevCls)h+=`<tr class="class-gap"><td colspan="7"></td></tr>`;prevCls=p.cls;}
+    if(p.cls!==prevCls){if(prevCls)h+=`<tr style="height:4px"><td colspan="7" style="border:none"></td></tr>`;prevCls=p.cls;}
     const a=A[p.name]||{},on=dutySet.has(p.name);
-    h+=`<tr><td>${p.cls}班</td><td>${p.name}${on?'<span class="duty-mark">👤</span>':''}</td>`;
-    h+=`<td class="${a.changed.礼服?'changed':''}">${a.礼服||''}${a.changed.礼服?' <span style="color:#ffe066;font-size:10px">(变动)</span>':''}</td>`;
-    h+=`<td class="${a.changed.礼帽?'changed':''}">${a.礼帽||''}${a.changed.礼帽?' <span style="color:#ffe066;font-size:10px">(变动)</span>':''}</td>`;
-    h+=`<td class="${a.changed.马靴?'changed':''}">${a.马靴||''}${a.changed.马靴?' <span style="color:#ffe066;font-size:10px">(变动)</span>':''}</td>`;
-    h+=`<td>${a.腰带||''}</td><td style="font-size:11px;max-width:240px;white-space:normal">${a.备注||''}</td></tr>`;
+    h+=`<tr><td>${p.cls}班</td><td>${p.name}${on?'<span style="color:#27ae60;font-weight:bold">👤</span>':''}</td>`;
+    h+=`<td class="${a.changed.礼服?'yellow-bg':''}">${a.礼服||''}${a.changed.礼服?' <span style="color:#ffe066;font-size:10px">(变动)</span>':''}</td>`;
+    h+=`<td class="${a.changed.礼帽?'yellow-bg':''}">${a.礼帽||''}${a.changed.礼帽?' <span style="color:#ffe066;font-size:10px">(变动)</span>':''}</td>`;
+    h+=`<td class="${a.changed.马靴?'yellow-bg':''}">${a.马靴||''}${a.changed.马靴?' <span style="color:#ffe066;font-size:10px">(变动)</span>':''}</td>`;
+    h+=`<td>${a.腰带||''}</td><td style="font-size:11px;max-width:260px;white-space:normal;text-align:left">${a.备注||''}</td></tr>`;
   }
-  h+=`<tr class="footer-note"><td colspan="7">备注：<span style="background:#ffe066;color:#000;padding:0 4px">黄色</span>为较先前有变化 | 👤 本周有执勤</td></tr></tbody></table>`;
+  h+=`<tr><td colspan="7" style="text-align:left;color:#999;font-size:11px;padding:4px 8px;background:#111">备注：<span style="background:#4a4a00;color:#ffe066;padding:0 4px">黄色</span>为较先前有变化 | 👤 本周有执勤</td></tr></tbody></table>`;
   document.getElementById('t1').innerHTML=h;
 }
 
-// 表2：礼服腰带摆放 — 完全复刻春四周布局
+// 表2：礼服腰带摆放 — 完全复刻春四周Excel
 function ren2(){
-  // Build user lookup from current assignments
   const uF={},uM={};
   for(const p of PEOPLE){const a=A[p.name];if(!a.礼服)continue;(p.sex==='F'?uF:uM)[a.礼服]=[...((p.sex==='F'?uF:uM)[a.礼服]||[]),p.name];}
-
-  const cabs=['一','二','三','四','五','六'],N=DRESS_CAB_TPL.length;
-  let h=`<table class="xlt t2-table"><thead>`;
-  h+=`<tr class="title-row"><td colspan="24">礼服腰带摆放</td><td style="color:#e74c3c;font-size:11px;text-align:left">备注：红色为较先前有变化</td></tr>`;
+  const N=11,cabs=['一','二','三','四','五','六'];
+  let h=`<table class="xl-table" style="width:auto"><thead>`;
+  h+=`<tr class="title-row"><td colspan="25">礼服腰带摆放</td><td class="note-red">备注：红色为较先前有变化</td></tr>`;
   h+=`<tr>`;
-  for(let i=0;i<6;i++)h+=`<th>柜号</th><th>礼服</th><th>腰带</th><th>使用人</th>`;
-  h+=`<th></th></tr></thead><tbody>`;
+  for(let i=0;i<6;i++)h+=`<th style="width:40px">柜号</th><th style="width:100px">礼服</th><th style="width:60px">腰带</th><th style="width:140px">姓名</th>`;
+  h+=`<th style="width:10px"></th></tr></thead><tbody>`;
   for(let row=0;row<N;row++){
     h+=`<tr>`;
     for(let ci=0;ci<6;ci++){
-      const off=ci*3;
-      const dress=DRESS_CAB_TPL[row][off]||'';
-      const belt=DRESS_CAB_TPL[row][off+1]||'';
+      const item=DC_TPL[ci][row]||['','',''];
+      const dress=item[0],belt=item[1];
       const isF=dress.startsWith('F');
-      const users=(isF?uF:uM)[dress]||[];
+      let users=(isF?uF:uM)[dress]||[];
+      // Check if these names should be red
+      const display=users.length?users.join('、'):'';
+      const isRed=DC_RED_SET.has(display)||(users.length&&DC_RED_SET.has(users.join('、').replace(/、/g,'')));
+      // More precise: check if any red name pair matches
+      let hasRed=false;
+      for(const pair of DC_RED)if(pair.every(n=>users.includes(n)))hasRed=true;
       const isYellow=DC_YELLOW.has(dress);
       if(row===0)h+=`<td class="cab-num" rowspan="${N}">${cabs[ci]}</td>`;
-      h+=`<td class="${!dress?'empty-slot':''}${isYellow?' yellow-fill':''}">${dress}</td>`;
+      h+=`<td class="${!dress?'empty-slot':''}${isYellow?' yellow-bg':''}">${dress}</td>`;
       h+=`<td class="${!dress?'empty-slot':''}">${belt}</td>`;
-      h+=`<td>${users.join('、')}</td>`;
+      h+=`<td${hasRed?' class="red-text"':''}>${display}</td>`;
     }
     h+=`<td></td></tr>`;
   }
@@ -300,19 +329,19 @@ function ren2(){
   document.getElementById('t2').innerHTML=h;
 }
 
-// 表3：礼帽摆放 — 完全复刻春四周布局
+// 表3：礼帽摆放
 function ren3(){
-  const cabs=['一','二','三','四','五','六'],N=HAT_CAB_TPL.length;
-  let h=`<table class="xlt t3-table"><thead>`;
+  const N=11,cabs=['一','二','三','四','五','六'];
+  let h=`<table class="xl-table" style="width:auto"><thead>`;
   h+=`<tr class="title-row"><td colspan="12">礼帽摆放</td></tr>`;
-  h+=`<tr>`;for(let i=0;i<6;i++)h+=`<th>柜号</th><th>礼帽</th>`;h+=`</tr></thead><tbody>`;
+  h+=`<tr>`;for(let i=0;i<6;i++)h+=`<th style="width:40px">柜号</th><th style="width:80px">礼帽</th>`;h+=`</tr></thead><tbody>`;
   for(let row=0;row<N;row++){
     h+=`<tr>`;
     for(let ci=0;ci<6;ci++){
-      const hat=HAT_CAB_TPL[row][ci]||'';
-      const isYellow=HC_YELLOW.has(hat);
+      const hat=HC_TPL[row][ci]||'';
+      const isY=HC_YELLOW.has(hat),isR=HC_RED.has(hat);
       if(row===0)h+=`<td class="cab-num" rowspan="${N}">${cabs[ci]}</td>`;
-      h+=`<td class="${!hat?'empty-slot':''}${isYellow?' yellow-fill':''}">${hat}</td>`;
+      h+=`<td class="${!hat?'empty-slot':''}${isY?' yellow-bg':''}${isR?' red-text':''}">${hat}</td>`;
     }
     h+=`</tr>`;
   }
@@ -320,32 +349,67 @@ function ren3(){
   document.getElementById('t3').innerHTML=h;
 }
 
-// 表4：马靴摆放 — 完全复刻春四周14×11网格
+// 表4：马靴摆放
 function ren4(){
   const bu={};for(const p of PEOPLE){const b=A[p.name]&&A[p.name].马靴;if(!b)continue;if(!bu[b])bu[b]=[];bu[b].push(p.name);}
-  function strip(cell){
+  function extractCode(cell){
     if(!cell||cell==='置物架')return cell;
     const m=cell.match(/^([A-Z]\d+\/\d+(?:\.\d+)?(?:-\d+)?|[A-Z]\d+(?:-\d+)?)/);
     return m?m[0]:cell;
   }
-  let h=`<table class="xlt t4-table"><thead><tr class="title-row"><td colspan="14">马靴摆放</td></tr></thead><tbody>`;
-  for(const row of BOOT_GRID){
-    h+=`<tr>`;
-    for(const item of row){
-      if(!item){h+=`<td></td>`;continue;}
-      if(item==='置物架'){h+=`<td class="shelf">置物架</td>`;continue;}
-      const code=strip(item);
-      const suffix=item.replace(code,'');
+  // Build name-fill map: each boot cell gets current user names
+  const fills={}; // "r,c" -> user string
+  for(let r=0;r<BG_TPL.length;r++){
+    for(let c=0;c<BG_TPL[r].length;c++){
+      const cell=BG_TPL[r][c];
+      const code=extractCode(cell);
+      if(!code||code==='置物架')continue;
       const users=bu[code]||[];
-      h+=`<td class="${users.length?'has-user':'empty-boot'}">${code}${suffix}${users.length?'<br><span class="un">'+users.join('、')+'</span>':''}</td>`;
+      if(users.length)fills[r+','+c]=users.join('、');
+    }
+  }
+
+  const N=BG_TPL.length;
+  let h=`<table class="xl-table" style="width:auto"><thead><tr class="title-row"><td colspan="14">马靴摆放</td></tr></thead><tbody>`;
+  // Rows with 置物架 merges: row2(A4:C7), row7(A9:B12), row2(L4:N7)
+  const mergeMap={};
+  // A4:C7 (rows 2-5 = indices 2,3,4,5 all merge into row2 colA)
+  for(let r=3;r<=5;r++)mergeMap[r+',0']=true;
+  for(let c=1;c<=2;c++)for(let r=2;r<=5;r++)mergeMap[r+','+c]=true;
+  // A9:B12 (rows 7-10 = indices 7,8,9,10 merge)
+  for(let r=8;r<=10;r++)mergeMap[r+',0']=true;
+  for(let c=1;c<=1;c++)for(let r=7;r<=10;r++)mergeMap[r+','+c]=true;
+  // L4:N7 (col 11-13 = L-N, rows 2-5)
+  for(let c=11;c<=13;c++)for(let r=2;r<=5;r++)mergeMap[r+','+c]=true;
+
+  for(let r=0;r<N;r++){
+    h+=`<tr>`;
+    for(let c=0;c<14;c++){
+      if(mergeMap[r+','+c])continue; // merged away
+      const cell=BG_TPL[r][c];
+      // Calculate rowspan
+      let rs=1,cs=1;
+      if(cell==='置物架'){
+        if(r===2&&c===0){rs=4;cs=3;} // A4:C7
+        else if(r===7&&c===0){rs=4;cs=2;} // A9:B12
+        else if(r===2&&c===11){rs=4;cs=3;} // L4:N7
+      }
+      if(!cell&&cs===1&&rs===1){h+=`<td></td>`;continue;}
+      if(cell==='置物架'){
+        h+=`<td class="shelf"${rs>1?' rowspan="'+rs+'"':''}${cs>1?' colspan="'+cs+'"':''}>置物架</td>`;
+        continue;
+      }
+      const code=extractCode(cell);
+      const users=bu[code]||[];
+      const codeOnly=cell===code?'':cell.replace(code,'').replace(/^\s*/,'');
+      const isY=BG_YELLOW.has(code),isR=BG_RED.has(code);
+      let cls='';
+      if(users.length)cls+=' has-user';
+      if(isY)cls+=' yellow-bg';
+      if(isR)cls+=' red-bg';
+      h+=`<td class="${cls}">${code}${codeOnly?'<br>'+codeOnly:''}${users.length?'<br><span class="un">'+users.join('、')+'</span>':''}</td>`;
     }
     h+=`</tr>`;
-  }
-  // Check for assigned boots not in grid
-  const placed=new Set(BOOT_GRID.flat().map(strip).filter(Boolean).filter(x=>x!=='置物架'));
-  const unplaced=BOOTS.filter(b=>!placed.has(b)&&(bu[b]||[]).length>0);
-  if(unplaced.length){
-    h+=`<tr><td colspan="14" style="color:#f39c12;font-size:11px;padding:6px">以下已分配的马靴不在模板网格中：${unplaced.map(b=>b+'('+(bu[b]||[]).join('、')+')').join('，')}</td></tr>`;
   }
   h+=`</tbody></table>`;
   document.getElementById('t4').innerHTML=h;
@@ -353,54 +417,56 @@ function ren4(){
 
 function renAll(){ren1();ren2();ren3();ren4();}
 
-// ======================== EXPORT XLSX ========================
+// ==================== EXPORT XLSX ====================
 function exportXLSX(){
   if(typeof XLSX==='undefined'){alert('SheetJS加载中，刷新后重试');return;}
   const wb=XLSX.utils.book_new();
 
-  // Sheet 1: 装备分配
+  // Sheet 1
   const s1=[['班级','姓名','礼服','礼帽','马靴','腰带','备注','备注：黄色为较先前有变化']];
   for(const p of PEOPLE){const a=A[p.name]||{};s1.push([p.cls+'班',p.name,a.礼服||'',a.礼帽||'',a.马靴||'',a.腰带||'',a.备注||'']);}
   const ws1=XLSX.utils.aoa_to_sheet(s1);
   ws1['!cols']=[{wch:8},{wch:11},{wch:21},{wch:11},{wch:15},{wch:11},{wch:46},{wch:28}];
   XLSX.utils.book_append_sheet(wb,ws1,'装备分配');
 
-  // Sheet 2: 礼服腰带摆放 — 25 cols = 6cabs×4 + 1 spacer
+  // Sheet 2
   const uF2={},uM2={};
   for(const p of PEOPLE){const a=A[p.name];if(!a.礼服)continue;(p.sex==='F'?uF2:uM2)[a.礼服]=[...((p.sex==='F'?uF2:uM2)[a.礼服]||[]),p.name];}
-  const s2=[],N2=DRESS_CAB_TPL.length,cabs=['一','二','三','四','五','六'];
-  s2.push([...Array(24).fill(''),'备注：红色为较先前有变化']);s2[0][0]='礼服腰带摆放';
-  const r2h=Array(25).fill('');for(let i=0;i<6;i++){const c=i*4;r2h[c]='柜号';r2h[c+1]='礼服';r2h[c+2]='腰带';r2h[c+3]='使用人';}s2.push(r2h);
+  const N2=DC_TPL[0].length,cs2=['一','二','三','四','五','六'];
+  const s2=[];
+  s2.push(Array(26).fill(''));s2[0][0]='礼服腰带摆放';s2[0][24]='备注：红色为较先前有变化';
+  const r2h=Array(26).fill('');for(let i=0;i<6;i++){const c=i*4;r2h[c]='柜号';r2h[c+1]='礼服';r2h[c+2]='腰带';r2h[c+3]='使用人';}s2.push(r2h);
   for(let row=0;row<N2;row++){
-    const r=Array(25).fill('');
+    const r=Array(26).fill('');
     for(let ci=0;ci<6;ci++){
-      const off=ci*3,dress=DRESS_CAB_TPL[row][off]||'',belt=DRESS_CAB_TPL[row][off+1]||'';
-      const isF=dress.startsWith('F'),users=(isF?uF2:uM2)[dress]||[],c=ci*4;
-      r[c]=row===0?cabs[ci]:'';r[c+1]=dress;r[c+2]=belt;r[c+3]=users.join('、');
+      const item=DC_TPL[ci][row]||['','',''];
+      const dress=item[0],belt=item[1],isF=dress.startsWith('F');
+      const users=(isF?uF2:uM2)[dress]||[],c=ci*4;
+      r[c]=row===0?cs2[ci]:'';r[c+1]=dress;r[c+2]=belt;r[c+3]=users.join('、');
     }
     s2.push(r);
   }
   const ws2=XLSX.utils.aoa_to_sheet(s2);
   ws2['!merges']=[{s:{r:0,c:0},e:{r:0,c:23}}];
   for(let ci=0;ci<6;ci++)ws2['!merges'].push({s:{r:2,c:ci*4},e:{r:2+N2-1,c:ci*4}});
-  ws2['!cols']=[{wch:8},{wch:11},{wch:8},{wch:20},{wch:3},{wch:8},{wch:11},{wch:8},{wch:20},{wch:3},{wch:8},{wch:11},{wch:8},{wch:20},{wch:3},{wch:8},{wch:11},{wch:8},{wch:20},{wch:3},{wch:8},{wch:11},{wch:8},{wch:20},{wch:25}];
+  ws2['!cols']=[{wch:8},{wch:11},{wch:8},{wch:20},{wch:3},{wch:8},{wch:11},{wch:8},{wch:20},{wch:3},{wch:8},{wch:11},{wch:8},{wch:20},{wch:3},{wch:8},{wch:11},{wch:8},{wch:20},{wch:3},{wch:8},{wch:11},{wch:8},{wch:20},{wch:25},{wch:10}];
   XLSX.utils.book_append_sheet(wb,ws2,'礼服腰带摆放');
 
-  // Sheet 3: 礼帽摆放
-  const s3=[],N3=HAT_CAB_TPL.length;
+  // Sheet 3
+  const N3=HC_TPL.length,s3=[];
   s3.push(Array(12).fill(''));s3[0][0]='礼帽摆放';
   const r3h=[];for(let i=0;i<6;i++)r3h.push('柜号','礼帽');s3.push(r3h);
-  for(let row=0;row<N3;row++){const r=[];for(let ci=0;ci<6;ci++)r.push(row===0?cabs[ci]:'',HAT_CAB_TPL[row][ci]||'');s3.push(r);}
+  for(let row=0;row<N3;row++){const r=[];for(let ci=0;ci<6;ci++)r.push(row===0?cs2[ci]:'',HC_TPL[row][ci]||'');s3.push(r);}
   const ws3=XLSX.utils.aoa_to_sheet(s3);
   ws3['!merges']=[{s:{r:0,c:0},e:{r:0,c:11}}];
   for(let ci=0;ci<6;ci++)ws3['!merges'].push({s:{r:2,c:ci*2},e:{r:2+N3-1,c:ci*2}});
   ws3['!cols']=Array(12).fill({wch:13});ws3['!cols'][0]={wch:8};
   XLSX.utils.book_append_sheet(wb,ws3,'礼帽摆放');
 
-  // Sheet 4: 马靴摆放
+  // Sheet 4
   const bu4={};for(const p of PEOPLE){const b=A[p.name]&&A[p.name].马靴;if(!b)continue;if(!bu4[b])bu4[b]=[];bu4[b].push(p.name);}
   const s4=[];s4.push(Array(14).fill(''));s4[0][0]='马靴摆放';
-  for(const row of BOOT_GRID){
+  for(const row of BG_TPL){
     const r=[];
     for(const item of row){
       if(!item){r.push('');continue;}
@@ -415,7 +481,6 @@ function exportXLSX(){
   ws4['!cols']=[{wch:20},{wch:10},{wch:18},{wch:18},{wch:18},{wch:23},{wch:20},{wch:20},{wch:21},{wch:22},{wch:22},{wch:18},{wch:20},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws4,'马靴摆放');
 
-  // Force download via Blob
   const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array',bookSST:false});
   const blob=new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
@@ -423,7 +488,7 @@ function exportXLSX(){
   setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 
-// ======================== UI ========================
+// ==================== UI ====================
 function runAll(){
   S=parseSched(document.getElementById('schedInput').value);
   initA();autoAllocate();
@@ -431,16 +496,13 @@ function runAll(){
   let h=`<div class="check-title">强制自检（5项校验）</div>`;
   for(const item of r)h+=`<div class="${item.ok?'pass':'fail'}">${item.msg}</div>`;
   const allOk=r.every(x=>x.ok);
-  h+=`<div style="margin-top:6px;font-size:14px;font-weight:bold;color:${allOk?'#27ae60':'#e74c3c'}">${allOk?'全部校验通过 | 表2/3/4柜位布局完全复刻春四周模板':'存在未通过，请检查'}</div>`;
+  h+=`<div style="margin-top:6px;font-size:14px;font-weight:bold;color:${allOk?'#27ae60':'#e74c3c'}">${allOk?'全部通过 | 表2/3/4完全复刻春四周模板':'存在未通过，请检查'}</div>`;
   el.innerHTML=h;renAll();
 }
-
 function switchTab(i){
   for(let j=0;j<4;j++)document.getElementById('sec'+j).style.display=j===i?'block':'none';
   document.querySelectorAll('.tab-btn').forEach((b,j)=>b.classList.toggle('active',j===i));
 }
-
-// Init
 initA();computeNotes();renAll();
 document.addEventListener('keydown',e=>{
   if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();runAll();}
