@@ -330,51 +330,39 @@ function renAll(){ren1();ren2();ren3();ren4();}
 
 // ======================== EXPORT XLSX ========================
 function exportXLSX(){
-  if(typeof XLSX==='undefined'){alert('SheetJS 加载中，请稍后再试');return;}
+  if(typeof XLSX==='undefined'){alert('SheetJS 加载中，刷新页面后重试');return;}
   const wb=XLSX.utils.book_new();
 
-  // ---- Sheet 1: 装备分配 (cols A-G + note in H) ----
-  const s1=[['班级','姓名','礼服','礼帽','马靴','腰带','备注','备注：黄色为较先前有变化','','','']];
-  for(const p of PEOPLE){const a=A[p.name]||{};s1.push([p.cls+'班',p.name,a.礼服||'',a.礼帽||'',a.马靴||'',a.腰带||'',a.备注||'','','','']);}
+  // ---- Sheet 1: 装备分配 ----
+  const s1=[['班级','姓名','礼服','礼帽','马靴','腰带','备注','备注：黄色为较先前有变化']];
+  for(const p of PEOPLE){const a=A[p.name]||{};s1.push([p.cls+'班',p.name,a.礼服||'',a.礼帽||'',a.马靴||'',a.腰带||'',a.备注||'']);}
   const ws1=XLSX.utils.aoa_to_sheet(s1);
-  ws1['!cols']=[{wch:8},{wch:11},{wch:21},{wch:11},{wch:15},{wch:11},{wch:46},{wch:28},{wch:8},{wch:8},{wch:8}];
+  ws1['!cols']=[{wch:8},{wch:11},{wch:21},{wch:11},{wch:15},{wch:11},{wch:46},{wch:28}];
   XLSX.utils.book_append_sheet(wb,ws1,'装备分配');
 
-  // ---- Sheet 2: 礼服腰带摆放 (25 cols: 6 cabs×4 + 1 spacer) ----
+  // ---- Sheet 2: 礼服腰带摆放 ----
   const s2=[],uF2={},uM2={};
   for(const p of PEOPLE){const a=A[p.name];if(!a.礼服)continue;(p.sex==='F'?uF2:uM2)[a.礼服]=[...((p.sex==='F'?uF2:uM2)[a.礼服]||[]),p.name];}
-  // Row 1: Title
-  const r1=Array(26).fill('');r1[0]='礼服腰带摆放';r1[24]='备注：红色为较先前有变化';
-  s2.push(r1);
-  // Row 2: Headers
-  const r2=Array(26).fill('');
-  for(let i=0;i<6;i++){const c=i*4;r2[c]='柜号';r2[c+1]='礼服';r2[c+2]='腰带';r2[c+3]='';}
-  s2.push(r2);
-  // Rows 3+: Data (柜号 only in first row of each cab, for merge)
+  const r1=Array(25).fill('');r1[0]='礼服腰带摆放';r1[24]='备注：红色为较先前有变化';s2.push(r1);
+  const r2=Array(25).fill('');for(let i=0;i<6;i++){const c=i*4;r2[c]='柜号';r2[c+1]='礼服';r2[c+2]='腰带';r2[c+3]='使用人';}s2.push(r2);
   const maxR2=Math.max(...CAB_DRESS.map(c=>c.length),1),cabs=['一','二','三','四','五','六'];
   for(let row=0;row<maxR2;row++){
-    const r=Array(26).fill('');
+    const r=Array(25).fill('');
     for(let ci=0;ci<6;ci++){
-      const eq=CAB_DRESS[ci][row]||'',isF=eq.startsWith('F'),bm=isF?BELT_F:BELT_M,belt=bm[eq]||'',users=(isF?uF2:uM2)[eq]||[];
-      const c=ci*4;
+      const eq=CAB_DRESS[ci][row]||'',isF=eq.startsWith('F'),bm=isF?BELT_F:BELT_M,belt=bm[eq]||'',users=(isF?uF2:uM2)[eq]||[],c=ci*4;
       r[c]=row===0?cabs[ci]:'';r[c+1]=eq;r[c+2]=belt;r[c+3]=users.join('、');
     }
     s2.push(r);
   }
   const ws2=XLSX.utils.aoa_to_sheet(s2);
   ws2['!merges']=[{s:{r:0,c:0},e:{r:0,c:23}}];
-  for(let ci=0;ci<6;ci++){
-    const sc=ci*4,ec=sc;
-    ws2['!merges'].push({s:{r:2,c:sc},e:{r:2+maxR2-1,c:ec}});
-  }
-  ws2['!cols']=Array(26).fill(null).map((_,i)=>{
-    const p=i%4;if(p===0)return{wch:8};if(p===1)return{wch:11};if(p===2)return{wch:8};return{wch:20};
-  });
+  for(let ci=0;ci<6;ci++){const sc=ci*4;ws2['!merges'].push({s:{r:2,c:sc},e:{r:2+maxR2-1,c:sc}});}
+  ws2['!cols']=Array(25).fill(null).map((_,i)=>{const p=i%4;if(p===0)return{wch:8};if(p===1)return{wch:11};if(p===2)return{wch:8};return{wch:20};});
   XLSX.utils.book_append_sheet(wb,ws2,'礼服腰带摆放');
 
-  // ---- Sheet 3: 礼帽摆放 (12 cols: 6 cabs×2) ----
+  // ---- Sheet 3: 礼帽摆放 ----
   const s3=[],maxR3=Math.max(...CAB_HAT.map(c=>c.length),1);
-  s3.push(Array(12).fill(''));s3[0][0]='礼帽摆放';
+  s3.push(['礼帽摆放','','','','','','','','','','','']);
   const r3h=[];for(let i=0;i<6;i++){r3h.push('柜号','礼帽');}s3.push(r3h);
   for(let row=0;row<maxR3;row++){
     const r=[];for(let ci=0;ci<6;ci++){r.push(row===0?cabs[ci]:'',CAB_HAT[ci][row]||'');}s3.push(r);
@@ -385,9 +373,9 @@ function exportXLSX(){
   ws3['!cols']=Array(12).fill({wch:11});
   XLSX.utils.book_append_sheet(wb,ws3,'礼帽摆放');
 
-  // ---- Sheet 4: 马靴摆放 (14 cols, merged regions from reference) ----
+  // ---- Sheet 4: 马靴摆放 ----
   const bu4={};for(const p of PEOPLE){const b=A[p.name]&&A[p.name].马靴;if(!b)continue;if(!bu4[b])bu4[b]=[];bu4[b].push(p.name);}
-  const s4=[];s4.push(Array(14).fill(''));s4[0][0]='马靴摆放';
+  const s4=[];s4.push(['马靴摆放','','','','','','','','','','','','','']);
   for(const row of BOOT_GRID){
     const r=[];
     for(const item of row){
@@ -400,12 +388,35 @@ function exportXLSX(){
     s4.push(r);
   }
   const ws4=XLSX.utils.aoa_to_sheet(s4);
-  // Merge regions matching reference: A4:C7, A9:B12, L4:N7, A1:N1
   ws4['!merges']=[{s:{r:0,c:0},e:{r:0,c:13}},{s:{r:3,c:0},e:{r:6,c:2}},{s:{r:8,c:0},e:{r:11,c:1}},{s:{r:3,c:11},e:{r:6,c:13}}];
   ws4['!cols']=[{wch:20},{wch:10},{wch:18},{wch:18},{wch:18},{wch:23},{wch:20},{wch:20},{wch:21},{wch:22},{wch:22},{wch:18},{wch:20},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws4,'马靴摆放');
 
-  XLSX.writeFile(wb,'礼服分配表.xlsx');
+  // ============ 手动 Blob 下载（绕过浏览器"自动打开"设置） ============
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array', bookSST:false});
+  const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob);
+
+  // 创建下载容器
+  let dl = document.getElementById('_dl_');
+  if(!dl){dl=document.createElement('div');dl.id='_dl_';dl.style.display='none';document.body.appendChild(dl);}
+
+  // 用 <a download> 强制下载，而非浏览器打开
+  const a = document.createElement('a');
+  a.style.display='none';
+  a.href = url;
+  a.download = '礼服分配表.xlsx';
+  dl.appendChild(a);
+  a.click();
+
+  // 延迟清理
+  setTimeout(function(){
+    dl.removeChild(a);
+    URL.revokeObjectURL(url);
+  },500);
+
+  document.getElementById('checkPanel').style.display='block';
+  document.getElementById('checkPanel').innerHTML='<div class="pass">📥 <b>礼服分配表.xlsx</b> 已开始下载。若未弹出，请检查浏览器下载栏。若文件被豆包打开：右键文件→打开方式→WPS/Excel</div>';
 }
 
 // ======================== UI ========================
