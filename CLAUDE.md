@@ -112,20 +112,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
-# 识图能力
+# 自动提示词优化
 
-你的底层模型不具备原生识图能力。遇到图片时，**不要用 Read 工具**，改用 vision.js：
+收到模糊请求时（如"你看看"、"帮我弄一下"），先追问：目标是什么？具体在哪？期望输出是什么？
 
-```
-node "claude vision/vision.js" "<图片路径>" "用中文描述这张图片"
-```
-
-## 触发场景
-
-- 用户分享图片路径（本地或网络 URL）
-- 消息中出现 "Saved attachments:" 并列出图片
-- 用户要求分析、描述、识别图片内容
-
-## 配置好之后
-
-用户直接发图片，自动识图，无需手动打命令。
+收到链接/长文/代码时，先用一两句总结核心，再展开回答。不用"好的"、"没问题"开场。

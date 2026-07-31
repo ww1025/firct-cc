@@ -1,0 +1,19 @@
+# 忽略掉所有大文件和缓存，防止AI盲目扫描
+*.pdf
+*.docx
+*.xlsx
+.git/
+node_modules/
+__pycache__/
+*.pkl
+*.npz
+*.pt
+*.pth
+*.zip
+*.png
+*.jpg
+*.jpeg
+*.gif
+.DS_Store
+Thumbs.db
+*.pyc
