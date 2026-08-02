@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>礼服自动分配系统</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:15px/1.6 system-ui,'Microsoft YaHei',sans-serif;background:#f0f2f5;color:#374151;min-height:100vh}
+header{background:#fff;border-bottom:1px solid #e5e7eb;padding:20px 0;text-align:center}
+h1{font-size:22px;font-weight:700}
+h1+p{color:#6b7280;margin-top:4px}
+main{max-width:860px;margin:32px auto;padding:0 24px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
+.card h2{font-size:16px;display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.badge{width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;font-size:13px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.up{border:2px dashed #e5e7eb;border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:.2s}
+.up:hover{border-color:#2563eb;background:#eff6ff}
+.up.sel{border-color:#16a34a;background:#f0fdf4}
+.up input{display:none}
+.up .n{font-weight:600;color:#16a34a;margin-top:4px;display:none}
+textarea{width:100%;height:180px;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font:13px Consolas,'Microsoft YaHei',monospace;resize:vertical}
+.or{display:flex;align-items:center;gap:12px;margin:16px 0}.or hr{flex:1;border:none;border-top:1px solid #e5e7eb}.or span{color:#9ca3af;font-size:13px}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
+.btn-b{background:#2563eb;color:#fff}.btn-b:hover{background:#1d4ed8}.btn-b:disabled{background:#d1d5db;cursor:not-allowed}
+.btn-g{background:#16a34a;color:#fff}.btn-g:hover{background:#15803d}.btn-g:disabled{background:#d1d5db;cursor:not-allowed}
+.spin{width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:s .6s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.st{padding:16px;border-radius:10px;text-align:center}
+.st.c{background:#fffbeb;border:1px solid #fde68a}.st.r{background:#eff6ff;border:1px solid #bfdbfe}.st.p{background:#f0fdf4;border:1px solid #bbf7d0}
+.st b{font-size:28px;display:block}.st span{color:#6b7280;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+th{background:#f9fafb;padding:8px 10px;text-align:left;font-weight:600;border-bottom:1px solid #e5e7eb}
+td{padding:8px 10px;border-bottom:1px solid #f3f4f6}
+.mv{color:#ef4444}.kp{color:#16a34a}.old{text-decoration:line-through;color:#9ca3af;font-size:12px}
+.hl{background:#fef9c3;font-weight:600;font-size:12px}
+.err{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;color:#ef4444;display:none;margin-top:12px}
+#load{text-align:center;padding:40px;display:none}
+footer{text-align:center;padding:24px;color:#9ca3af;font-size:12px}
+</style>
+</head>
+<body>
+<header><h1>&#127894; 浙江大学国旗仪仗队 · 礼服自动分配系统</h1><p>上传上月Excel + 排班表 → 自动检测冲突 → 下载新表</p></header>
+<main>
+<div class="card">
+<h2><span class="badge">1</span> 上传上月分配表 (.xlsx)</h2>
+<div class="up" id="ea"><div style="font-size:36px;margin-bottom:8px">&#128206;</div><div>拖拽或点击上传上月 Excel</div><div style="color:#9ca3af;font-size:13px">支持 .xlsx 格式</div>
+<input type="file" id="ei" accept=".xlsx"/><div class="n" id="en"></div></div>
+</div>
+
+<div class="card">
+<h2><span class="badge">2</span> 输入本月排班 <span style="font-weight:400;color:#9ca3af;font-size:13px;margin-left:auto">上传照片 OR 手动输入，二选一</span></h2>
+
+<div class="up" id="ia"><div style="font-size:36px;margin-bottom:8px">&#128247;</div><div>方式A：上传排班表照片（核心功能）</div><div style="color:#9ca3af;font-size:13px">系统自动 OCR 识别手写/打印的排班表</div>
+<input type="file" id="ii" accept=".jpg,.jpeg,.png,.bmp,.webp"/><div class="n" id="inm"></div></div>
+
+<div class="or"><hr><span>或</span><hr></div>
+
+<div style="font-size:15px;font-weight:600;color:#374151;margin-bottom:6px">方式B：手动输入排班文字</div>
+<textarea id="st" placeholder="每行一天，格式：周一：张三、李四&#10;周一：李诗诗、郭婷心、岳佳凝、江文欣&#10;周二：柯天翊、章芮容、余佳卉、马欣雅&#10;周三：李泽一、方佳瑶、纪博雅、董欢瑶&#10;周四：林珩、王雨梦、施东隅、艾克达&#10;周五：吴桐、段茗萱、张艺、许诺"></textarea>
+</div>
+
+<button class="btn btn-b" id="gb" disabled>&#128640; 生成本月分配表</button>
+<div class="err" id="er"></div>
+<div id="load"><div class="spin" style="display:inline-block;border-color:#d1d5db;border-top-color:#2563eb;width:32px;height:32px"></div><p style="margin-top:12px;color:#6b7280">正在分析冲突并生成分配表...</p></div>
+
+<div id="res" style="display:none"><div class="card">
+<h2><span class="badge">3</span> 生成结果</h2>
+<p style="color:#6b7280;margin-bottom:16px" id="rm"></p>
+<div class="stats" id="sr" style="display:none">
+<div class="st c"><b id="cc">0</b><span>冲突数</span></div>
+<div class="st r"><b id="rc">0</b><span>重分配</span></div>
+<div class="st p"><b id="ac">0</b><span>受影响人数</span></div>
+</div>
+<div id="ct"></div><div id="rt"></div>
+<div style="margin-top:20px"><button class="btn btn-g" id="db" disabled>&#128229; 下载本月分配表 (.xlsx)</button></div>
+</div></div>
+</main>
+<footer>浙江大学国旗仪仗队 &copy; 2026</footer>
+<script>
+var ef=null,imgf=null,xb64='';
+function ua(id,inpId,nmId,cb){
+  var a=document.getElementById(id),inp=document.getElementById(inpId),nm=document.getElementById(nmId);
+  a.addEventListener('click',function(){inp.click()});
+  a.addEventListener('dragover',function(e){e.preventDefault()});
+  a.addEventListener('drop',function(e){e.preventDefault();var f=e.dataTransfer.files[0];if(f)cb(f,a,nm)});
+  inp.addEventListener('change',function(){var f=inp.files[0];if(f)cb(f,a,nm)});
+}
+function sf(f,a,nm){a.classList.add('sel');nm.style.display='block';nm.textContent=f.name;chk()}
+ua('ea','ei','en',function(f,a,nm){ef=f;sf(f,a,nm)});
+ua('ia','ii','inm',function(f,a,nm){imgf=f;sf(f,a,nm)});
+document.getElementById('st').addEventListener('input',chk);
+function chk(){
+  var ei_f=!!ef;
+  var has_img=!!imgf;
+  var has_txt=!!document.getElementById('st').value.trim();
+  document.getElementById('gb').disabled=!(ei_f && (has_img||has_txt));
+}
+document.getElementById('gb').addEventListener('click',async function(){
+  if(!ef)return;
+  document.getElementById('er').style.display='none';
+  document.getElementById('res').style.display='none';
+  document.getElementById('load').style.display='block';
+  document.getElementById('gb').disabled=true;
+  try{
+    var fd=new FormData();
+    fd.append('excel',ef);
+    fd.append('schedule',document.getElementById('st').value.trim());
+    if(imgf)fd.append('image',imgf);
+
+    var r=await fetch('/generate',{method:'POST',body:fd});
+    if(!r.ok)throw new Error(await r.text());
+    show(await r.json());
+  }catch(e){
+    document.getElementById('er').textContent='生成失败: '+e.message;
+    document.getElementById('er').style.display='block';
+  }
+  document.getElementById('load').style.display='none';chk();
+});
+function show(d){
+  document.getElementById('res').style.display='block';
+  document.getElementById('rm').textContent=d.message;
+  document.getElementById('sr').style.display='grid';
+  document.getElementById('cc').textContent=d.conflicts_count;
+  document.getElementById('rc').textContent=d.reassignments_count;
+  document.getElementById('ac').textContent=new Set(d.reassignments.map(function(r){return r.person})).size;
+  xb64=d.excel_base64;
+  document.getElementById('db').disabled=false;
+  document.getElementById('db').onclick=function(){
+    var b=atob(xb64),u8=new Uint8Array(b.length);
+    for(var i=0;i<b.length;i++)u8[i]=b.charCodeAt(i);
+    var blob=new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='本月礼服分配.xlsx';a.click();
+  };
+  var h='';
+  if(d.conflicts.length){
+    h+='<h3 style="margin:12px 0 4px">冲突详情</h3><table><tr><th>日期</th><th>装备</th><th>编号</th><th>需变动</th><th>保留</th></tr>';
+    d.conflicts.forEach(function(c){h+='<tr><td>'+c.day+'</td><td>'+c.item_type+'</td><td style="font-size:12px">'+c.item_code+'</td><td class="mv">'+c.person_to_move+'</td><td class="kp">'+c.person_to_keep+'</td></tr>'});
+    h+='</table>';
+    document.getElementById('ct').innerHTML=h;
+  }
+  if(d.reassignments.length){
+    h='<h3 style="margin:12px 0 4px">重分配方案</h3><table><tr><th>姓名</th><th>装备</th><th>旧编号</th><th>新编号</th></tr>';
+    d.reassignments.forEach(function(r){h+='<tr><td>'+r.person+'</td><td>'+r.item_type+'</td><td class="old">'+r.old_item+'</td><td class="hl">'+r.new_item+'</td></tr>'});
+    h+='</table>';
+    document.getElementById('rt').innerHTML=h;
+  }
+  document.getElementById('res').scrollIntoView({behavior:'smooth'});
+}
+</script>
+</body></html>
