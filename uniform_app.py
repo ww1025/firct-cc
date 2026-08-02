@@ -3,7 +3,7 @@ import streamlit as st
 import base64, io, os, re, tempfile, sys
 from difflib import SequenceMatcher
 
-st.set_page_config(page_title="礼服自动分配系统", page_icon="🎖️", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="礼服自动分配系统", page_icon="🎖️", layout="centered", initial_sidebar_state="collapsed")
 
 YELLOW = 'FFFFFF00'
 
@@ -415,15 +415,27 @@ def inject_css():
     st.markdown("""
     <style>
     #MainMenu, footer, header {visibility: hidden}
+    .block-container {padding-top: 1.5rem !important; padding-bottom: 2rem !important; max-width: 800px !important}
     .stApp {background-color: #f0f2f5}
-    .block-container {padding-top: 1rem !important}
-    h1 {font-size: 1.8rem !important; font-weight: 700 !important}
-    h2 {font-size: 1.3rem !important; font-weight: 600 !important}
-    h3 {font-size: 1.1rem !important; font-weight: 600 !important; margin-top: 1rem !important}
-    .stButton button {font-weight: 600 !important; border-radius: 10px !important; padding: 0.6rem 1.2rem !important; transition: all 0.2s}
+    h1 {font-size: 1.6rem !important; font-weight: 700 !important; color: #1f2937 !important}
+    h2 {font-size: 1.2rem !important; font-weight: 600 !important; color: #1f2937 !important}
+    h3 {font-size: 1.05rem !important; font-weight: 600 !important; color: #1f2937 !important; margin-top: 1rem !important}
+    p, .stMarkdown, .stCaption {color: #4b5563 !important}
+    .stButton button {
+        font-weight: 600 !important; border-radius: 10px !important;
+        padding: 0.65rem 1.5rem !important; transition: all 0.2s; font-size: 15px !important
+    }
     .stButton button:hover {transform: scale(1.02)}
-    .stDownloadButton button {font-weight: 600 !important; border-radius: 10px !important; background-color: #16a34a !important; color: white !important; width: 100% !important; padding: 0.8rem !important}
-    div[data-testid="stMetricValue"] {font-size: 2rem !important; font-weight: 700 !important}
+    .stDownloadButton button {
+        font-weight: 600 !important; border-radius: 10px !important;
+        background-color: #16a34a !important; color: white !important;
+        width: 100% !important; padding: 0.8rem !important; font-size: 15px !important
+    }
+    div[data-testid="stMetricValue"] {font-size: 2rem !important; font-weight: 700 !important; color: #1f2937 !important}
+    div[data-testid="stMetricLabel"] {color: #6b7280 !important}
+    .stTextArea textarea, .stFileUploader {color: #1f2937 !important}
+    label, .stMarkdown p, .stCaption p {font-size: 14px !important}
+    section[data-testid="stSidebar"] {display: none}
     </style>
     """, unsafe_allow_html=True)
 
