@@ -447,12 +447,11 @@ def inject_css():
     st.markdown("""
     <style>
     /* ═══ Reset & Global ═══ */
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
     #MainMenu, footer, header, [data-testid="stToolbar"] {visibility: hidden !important; display: none !important}
     .stApp {background-color: #ECEEEF}
     .block-container {max-width: 1200px !important; padding: 0 !important}
     body, p, div, span, label, input, textarea, select, button {
-        font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "STHeiti", sans-serif !important
+        font-family: "PingFang SC", "Microsoft YaHei", "STHeiti", sans-serif !important
     }
 
     /* ═══ Top Header Bar ═══ */
