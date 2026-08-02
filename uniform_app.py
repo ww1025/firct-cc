@@ -206,6 +206,25 @@ def parse_schedule(text):
         if names: schedule.append(dict(day=day, people=names))
     return schedule
 
+def adjust_monday_schedule(schedule):
+    """周一人员从周二~周五班抽调，只参加周一升旗。从原班移除。"""
+    monday_people = set()
+    for day in schedule:
+        if day['day'] == '周一':
+            monday_people = set(day['people'])
+            break
+    if not monday_people:
+        return schedule
+    adjusted = []
+    for day in schedule:
+        if day['day'] == '周一':
+            adjusted.append(day)
+        else:
+            filtered = [p for p in day['people'] if p not in monday_people]
+            if filtered:
+                adjusted.append(dict(day=day['day'], people=filtered))
+    return adjusted
+
 def uniform_sort_key(person):
     suit = person.get('uniform', '')
     if not suit: return (2, 999, 999, 999)
@@ -381,12 +400,13 @@ def ocr_faculty_roster(img_bytes, excel_bytes):
             if any(kw in t for kw in HEADER_KW):
                 header_x_positions.append({'text': t, 'x1': x1, 'x2': x3, 'cx': (x1 + x3) / 2})
         queue_raw = []
+        scaled_w = w * scale
         if header_x_positions:
             header_x_positions.sort(key=lambda h: h['x1'])
             queue_headers = [h for h in header_x_positions if any(kw in h['text'] for kw in ['擎护旗', '队列'])]
             other_headers = [h for h in header_x_positions if not any(kw in h['text'] for kw in ['擎护旗', '队列'])]
             if queue_headers and other_headers:
-                divide_x = other_headers[0]['x1'] - 30
+                divide_x = other_headers[0]['x1'] - 100
             elif queue_headers:
                 divide_x = queue_headers[-1]['x2'] + 250
             else:
@@ -396,6 +416,20 @@ def ocr_faculty_roster(img_bytes, excel_bytes):
                 t = text.strip()
                 if len(t) < 2: continue
                 if any(kw in t for kw in HEADER_KW): continue
+                if x1 < 5 or y1 < 5: continue
+                cx = (x1 + x3) / 2
+                if cx < divide_x:
+                    corrected = fuzzy_match(t, known_names)
+                    if corrected not in queue_raw:
+                        queue_raw.append(corrected)
+        else:
+            divide_x = int(0.6 * scaled_w)
+            for bbox, text, conf in sorted(results, key=lambda r: r[0][0][1]):
+                x1, y1 = bbox[0]; x3, y3 = bbox[2]
+                t = text.strip()
+                if len(t) < 2: continue
+                if any(kw in t for kw in HEADER_KW): continue
+                if x1 < 5 or y1 < 5: continue
                 cx = (x1 + x3) / 2
                 if cx < divide_x:
                     corrected = fuzzy_match(t, known_names)
@@ -496,6 +530,7 @@ def page_daily():
                             ocr_warning.info("⚠️ OCR 识别结果已填入下方，请核对修正后再点生成")
                 if not schedule_text.strip(): st.error("请提供排班文本或上传排班照片"); st.stop()
                 schedule = parse_schedule(schedule_text.strip())
+                schedule = adjust_monday_schedule(schedule)
                 if not schedule: st.error(f"排班格式无法解析。\n{schedule_text[:300]}"); st.stop()
                 import openpyxl
                 with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as t:
