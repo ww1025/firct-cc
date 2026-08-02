@@ -368,7 +368,7 @@ def ocr_faculty_roster(img_bytes, excel_bytes):
             wb_tmp.close()
         finally:
             os.unlink(etmp)
-        scale = max(1, 800 // w)
+        scale = max(1, 1200 // w)
         img = img.resize((w * scale, h * scale), Image.LANCZOS)
         pre = ip + '_pre.png'; img.save(pre)
         reader = get_ocr_reader()
@@ -386,9 +386,7 @@ def ocr_faculty_roster(img_bytes, excel_bytes):
             queue_headers = [h for h in header_x_positions if any(kw in h['text'] for kw in ['擎护旗', '队列'])]
             other_headers = [h for h in header_x_positions if not any(kw in h['text'] for kw in ['擎护旗', '队列'])]
             if queue_headers and other_headers:
-                gap_start = queue_headers[-1]['x2']
-                gap_end = other_headers[0]['x1']
-                divide_x = gap_start + (gap_end - gap_start) * 0.70
+                divide_x = other_headers[0]['x1'] - 30
             elif queue_headers:
                 divide_x = queue_headers[-1]['x2'] + 250
             else:
@@ -563,7 +561,7 @@ def page_faculty():
                     if len(img_bytes) > 0:
                         ocr_parsed = ocr_faculty_roster(img_bytes, excel_bytes)
                         if ocr_parsed:
-                            roster_text = ocr_parsed if not roster_text.strip() else roster_text
+                            roster_text = ocr_parsed
                             ocr_warning2.info("⚠️ OCR 识别结果已填入下方，请核对修正后再点生成")
                 if not roster_text.strip(): st.error("请提供队列人员名单或上传照片"); st.stop()
                 queue_names = []
