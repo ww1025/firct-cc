@@ -909,6 +909,7 @@ elif st.session_state.page == 'faculty':
     # 返回首页
     if st.button("← 返回首页", key="back_home"):
         st.session_state.ocr_roster = ''
+        st.session_state.fac_roster = ''
         st.session_state._fac_entered = False
         st.session_state.page = 'home'; st.rerun()
 
@@ -971,6 +972,7 @@ elif st.session_state.page == 'faculty':
                 ocr_text = ocr_faculty_roster(img_bytes, excel_file.getvalue())
                 if ocr_text:
                     st.session_state.ocr_roster = ocr_text
+                    st.session_state.fac_roster = ocr_text  # 直接更新文本框的值
                     st.success("识别完成，名单已填入下方。核对后点击生成按钮")
                 else:
                     st.session_state.ocr_roster = '__EMPTY__'
