@@ -940,7 +940,7 @@ elif st.session_state.page == 'faculty':
         if excel_file:
             with st.spinner("正在处理..."):
                 try:
-                    excel_bytes = excel_file.getvalue()  # 读缓存，不用 .read()
+                    excel_bytes = excel_file.getvalue()
 
                     if image_file:
                         img_bytes = image_file.getvalue()
@@ -948,7 +948,8 @@ elif st.session_state.page == 'faculty':
                             ocr_text = ocr_faculty_roster(img_bytes, excel_bytes)
                             if ocr_text:
                                 st.session_state.ocr_roster = ocr_text
-                                st.rerun()
+                                st.info("已识别人员名单，请核对后再次点击生成按钮")
+                                st.stop()  # 不用 rerun——让用户手动确认后再点
 
                     if not roster.strip():
                         st.error("请提供队列人员名单"); st.stop()
