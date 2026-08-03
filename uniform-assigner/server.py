@@ -1453,6 +1453,9 @@ def generate_faculty():
 
 if __name__ == '__main__':
     from waitress import serve
+    import os
+    # Hugging Face Spaces requires port 7860
+    port = int(os.environ.get('PORT', PORT))
     print(f'\n   礼服自动分配系统启动!')
-    print(f'   http://localhost:{PORT}\n')
-    serve(app, host='0.0.0.0', port=PORT, threads=8, channel_timeout=300)
+    print(f'   http://0.0.0.0:{port}\n')
+    serve(app, host='0.0.0.0', port=port, threads=8, channel_timeout=300)
