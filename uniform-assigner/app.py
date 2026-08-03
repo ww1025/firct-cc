@@ -961,15 +961,18 @@ elif st.session_state.page == 'faculty':
                 try:
                     excel_bytes = excel_file.getvalue()
 
-                    # OCR: 识别照片 → 回填到文本框，通知用户核对后再点一次
-                    if image_file:
+                    # OCR: 仅在首次——有图片且名单为空时运行
+                    if image_file and not roster.strip():
                         img_bytes = image_file.getvalue()
                         if len(img_bytes) > 0:
+                            st.info("AI 正在识别照片...")
                             ocr_text = ocr_faculty_roster(img_bytes, excel_bytes)
                             if ocr_text:
                                 st.session_state.ocr_roster = ocr_text
-                                st.info("已识别人员名单，请核对后再次点击生成按钮")
-                                st.stop()
+                                st.success("识别完成，名单已填入。请核对后再次点击生成")
+                            else:
+                                st.warning("未能识别到人员，请手动输入")
+                            st.stop()
 
                     if not roster.strip():
                         st.error("请提供队列人员名单"); st.stop()
