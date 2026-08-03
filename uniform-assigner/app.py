@@ -7,6 +7,7 @@ import threading
 import time
 import socket
 import os
+import sys
 
 st.set_page_config(
     page_title="浙江大学国旗仪仗队",
@@ -27,18 +28,19 @@ if 'flask_ready' not in st.session_state:
     st.session_state.flask_port = port
 
     from waitress import serve
+    sys.path.insert(0, os.path.dirname(__file__))
     from server import app
 
     def run():
-        serve(app, host='0.0.0.0', port=port, threads=4, channel_timeout=300)
+        serve(app, host='127.0.0.1', port=port, threads=4, channel_timeout=300)
 
     t = threading.Thread(target=run, daemon=True)
     t.start()
-    time.sleep(3)
+    time.sleep(3)  # 等 Flask 完全启动
     st.session_state.flask_ready = True
 
 # 全屏 iframe 内嵌 Flask 网站
-url = f"http://localhost:{st.session_state.flask_port}"
+url = f"http://127.0.0.1:{st.session_state.flask_port}"
 
 st.markdown(f"""
 <style>
