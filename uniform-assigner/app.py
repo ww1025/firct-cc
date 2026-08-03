@@ -412,9 +412,11 @@ def ocr_daily_schedule(img_bytes, excel_bytes):
 
 
 def ocr_faculty_roster(img_bytes, excel_bytes):
-    """院系模式 OCR：从人员安排表照片识别队列人员"""
+    """院系模式 OCR：5步列聚类方案
+    返回 (roster_text, debug_all_text, debug_columns)"""
     from PIL import Image
     import numpy as np
+    import math
 
     with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as t:
         t.write(img_bytes); ip = t.name
@@ -436,58 +438,199 @@ def ocr_faculty_roster(img_bytes, excel_bytes):
         finally:
             os.unlink(etmp)
 
-        scale = max(1, 800 // w)
-        img = img.resize((w * scale, h * scale), Image.LANCZOS)
+        # ═══ 第一步：只降不升（避免小图放大失真），宁多勿漏 ═══
+        TARGET_W = min(w, 2000)
+        scale = TARGET_W / w
+        new_w, new_h = TARGET_W, int(h * scale)
+        img = img.resize((new_w, new_h), Image.LANCZOS)
         pre = ip + '_pre.png'; img.save(pre)
 
-        reader = get_ocr_reader()
-        results = reader.readtext(np.array(img), detail=1)
+        import easyocr
+        reader = easyocr.Reader(['ch_sim'], gpu=False)
+        results = reader.readtext(np.array(img), detail=1, low_text=0.2, text_threshold=0.4)
 
-        HEADER_KW = ['擎护旗', '队列', '总负责', '场控', '后勤', '摄影']
-        header_x_positions = []
+        print(f'[Faculty-OCR] Image: {w}x{h} -> {new_w}x{new_h}, {len(results)} text regions')
+
+        # 过滤真正贴边的噪点（绝对5px，不用百分比，避免误删小图片中的文字）
+        filtered = []
         for bbox, text, conf in results:
             x1, y1 = bbox[0]; x3, y3 = bbox[2]
             t = text.strip()
-            if any(kw in t for kw in HEADER_KW):
-                header_x_positions.append({'text': t, 'x1': x1, 'x2': x3, 'cx': (x1 + x3) / 2})
+            if not t: continue
+            if x1 <= 5 and y1 <= 5: continue
+            if x3 >= new_w - 5 and y3 >= new_h - 5: continue
+            filtered.append((bbox, t, conf))
+        results = filtered
 
-        queue_raw = []
-        if header_x_positions:
-            header_x_positions.sort(key=lambda h: h['x1'])
-            queue_headers = [h for h in header_x_positions if any(kw in h['text'] for kw in ['擎护旗', '队列'])]
-            other_headers = [h for h in header_x_positions if not any(kw in h['text'] for kw in ['擎护旗', '队列'])]
+        # 构建 debug_all_text（全部原始文本+坐标）
+        debug_raw_lines = []
+        for bbox, text, conf in results:
+            x1, y1 = bbox[0]; x3, y3 = bbox[2]
+            debug_raw_lines.append(
+                f'{text} | x={x1:.0f}-{x3:.0f} cx={(x1+x3)/2:.0f} y={y1:.0f}-{y3:.0f} cy={(y1+y3)/2:.0f} conf={conf:.2f}'
+            )
+        debug_all_text = '\n'.join(debug_raw_lines)
 
-            if queue_headers and other_headers:
-                gap_start = queue_headers[-1]['x2']
-                gap_end = other_headers[0]['x1']
-                divide_x = gap_start + (gap_end - gap_start) * 0.70
-            elif queue_headers:
-                divide_x = queue_headers[-1]['x2'] + 250
-            else:
-                divide_x = other_headers[0]['x1'] - 250
+        # 把每个文本块整理成统一结构
+        blocks = []
+        for bbox, text, conf in results:
+            x1, y1 = bbox[0]; x3, y3 = bbox[2]
+            blocks.append({
+                'text': text, 'x1': x1, 'x3': x3, 'cx': (x1 + x3) / 2,
+                'y1': y1, 'y3': y3, 'cy': (y1 + y3) / 2, 'conf': conf
+            })
 
-            for bbox, text, conf in sorted(results, key=lambda r: r[0][0][1]):
-                x1, y1 = bbox[0]; x3, y3 = bbox[2]
-                t = text.strip()
-                if len(t) < 2: continue
-                if any(kw in t for kw in HEADER_KW): continue
-                cx = (x1 + x3) / 2
-                if cx < divide_x:
-                    corrected = fuzzy_match(t, known_names)
-                    if corrected not in queue_raw:
-                        queue_raw.append(corrected)
+        # ═══ 第二步：按 x 坐标列聚类 —— 固定列宽 = 图片宽度 / 8 ═══
+        COL_W = new_w / 8
+        blocks.sort(key=lambda b: b['cx'])
+
+        # 把所有 block 分配到列
+        col_buckets = {}
+        for b in blocks:
+            col_idx = int(b['cx'] // COL_W)
+            if col_idx not in col_buckets:
+                col_buckets[col_idx] = []
+            col_buckets[col_idx].append(b)
+
+        # 按列号排序
+        sorted_cols = sorted(col_buckets.items())  # [(col_idx, [blocks]), ...]
+
+        # 把稀疏的相邻列合并（如果两列间距 < COL_W * 0.5）
+        merged_cols = []
+        for col_idx, col_blocks in sorted_cols:
+            if merged_cols and col_idx - merged_cols[-1][0] <= 1:
+                # 相邻列，检查实际 x 范围是否有重叠或接近
+                prev_blocks = merged_cols[-1][1]
+                prev_max_x = max(b['x3'] for b in prev_blocks)
+                cur_min_x = min(b['x1'] for b in col_blocks)
+                if cur_min_x - prev_max_x < COL_W * 0.3:
+                    merged_cols[-1] = (merged_cols[-1][0], prev_blocks + col_blocks)
+                    continue
+            merged_cols.append((col_idx, col_blocks))
+
+        # ═══ 第三步：标记角色列，左边所有列全算队列 ═══
+        ROLE_KW = ['总负责', '场控', '后勤', '摄影']
+        QUEUE_TITLE_KW = ['擎护旗', '队列']
+
+        # 找第一个角色列的索引
+        first_role_col_idx = None
+        for i, (_, col_blocks) in enumerate(merged_cols):
+            col_text = ' '.join(b['text'] for b in col_blocks)
+            if any(kw in col_text for kw in ROLE_KW):
+                first_role_col_idx = i
+                break
+
+        # 标记每列
+        if first_role_col_idx is not None:
+            # 角色列及右边的列全部标记为 role，左边的全为 queue
+            for i in range(len(merged_cols)):
+                merged_cols[i] = merged_cols[i] + ({'type': 'role' if i >= first_role_col_idx else 'queue'},)
+        else:
+            # 强制兜底：没识别到角色关键词，前 4 列全算队列
+            for i in range(len(merged_cols)):
+                merged_cols[i] = merged_cols[i] + ({'type': 'queue' if i < 4 else 'role'},)
+
+        # ═══ 第四步：人名清洗与兜底匹配 ═══
+        def fuzzy_match_name(name, name_list):
+            """字符重合度 >= 50% 就尝试还原"""
+            if not name or len(name) < 1: return name
+            if name in name_list: return name
+            nc = set(name)
+            best, best_score = name, 0
+            for ref in name_list:
+                rc = set(ref)
+                common = len(nc & rc)
+                overlap = common / max(len(nc), len(rc))
+                seq = SequenceMatcher(None, name, ref).ratio()
+                score = overlap * 10 + seq * 5
+                if score > best_score:
+                    best_score = score
+                    best = ref
+            # 重合度 >= 50% 就匹配
+            if best_score >= 5 and best != name:
+                return best
+            return name
+
+        queue_names = []
+        debug_col_lines = []
+
+        for col_idx, col_blocks, meta in merged_cols:
+            ctype = meta['type']
+            cx1 = min(b['x1'] for b in col_blocks)
+            cx2 = max(b['x3'] for b in col_blocks)
+            col_blocks.sort(key=lambda b: b['y1'])
+
+            # 合并单字：同列上下相邻的单字合并
+            merged_texts = []
+            i = 0
+            while i < len(col_blocks):
+                b = col_blocks[i]
+                t = b['text'].strip()
+                if len(t) == 1 and i + 1 < len(col_blocks):
+                    nb = col_blocks[i + 1]
+                    char_h = b['y3'] - b['y1']
+                    if char_h > 0 and nb['y1'] - b['y3'] < char_h * 3.0:
+                        t = t + nb['text'].strip()
+                        i += 1
+                merged_texts.append({'text': t, 'y1': b['y1']})
+                i += 1
+
+            # 提取人名
+            col_names = []
+            for mt in merged_texts:
+                t = mt['text'].strip()
+                if not t: continue
+                # 剔除纯标题词
+                if t in QUEUE_TITLE_KW: continue
+                if t in ROLE_KW: continue
+                # 剔除混合文本中的标题关键词，保留人名部分
+                for kw in QUEUE_TITLE_KW + ROLE_KW:
+                    if kw in t and t != kw:
+                        t = t.replace(kw, '').strip()
+                if not t: continue
+                # 模糊匹配
+                corrected = fuzzy_match_name(t, known_names)
+                col_names.append(corrected)
+
+            debug_col_lines.append(
+                f'Col[{col_idx}] type={ctype} x=[{cx1:.0f},{cx2:.0f}] '
+                f'raw={[b["text"] for b in col_blocks]} -> names={col_names}'
+            )
+
+            if ctype == 'queue':
+                for n in col_names:
+                    if n and n not in queue_names:
+                        queue_names.append(n)
+
+        # 兜底：全图碎片字符级匹配找回漏网之鱼
+        if known_names:
+            all_text = ''.join(b['text'] for b in blocks)
+            all_chars = set(all_text)
+            for ref_name in known_names:
+                if ref_name in queue_names: continue
+                rc = set(ref_name)
+                hit = all_chars & rc
+                if len(hit) >= max(2, len(rc) * 0.5):
+                    # 二次确认：尝试匹配每个碎片
+                    for b in blocks:
+                        if fuzzy_match_name(b['text'], known_names) == ref_name:
+                            if ref_name not in queue_names:
+                                queue_names.append(ref_name)
+                            break
+
+        debug_columns = '\n'.join(debug_col_lines)
+
+        print(f'[Faculty-OCR] {len(merged_cols)} columns, first_role_col={first_role_col_idx}')
+        print(f'[Faculty-OCR] Queue names ({len(queue_names)}): {queue_names}')
 
         os.unlink(pre)
-        return '\n'.join(queue_raw) if queue_raw else ''
+        roster_text = '\n'.join(queue_names) if queue_names else ''
+        return roster_text, debug_all_text, debug_columns
 
     finally:
         try: os.unlink(ip)
         except: pass
 
-
-# ═══════════════════════════════════════════════════════════════
-# CSS Styling
-# ═══════════════════════════════════════════════════════════════
 
 def inject_css():
     st.markdown("""
@@ -700,12 +843,17 @@ def page_faculty():
     st.caption("AI 自动识别队列人员（总负责/场控/后勤/摄影不参与分配）")
     st.caption("或手动输入/修正队列人员（每行一人或顿号分隔）")
 
+    # OCR 回填：渲染前从独立 session_state key 读取
+    ocr_default = st.session_state.get('ocr_roster_result', '')
+    ocr_meta_default = st.session_state.get('ocr_meta_result', {})
+
     roster_text = st.text_area(
         "队列人员",
         placeholder="林珩\n韩雅丽\n艾克达\n张鹏\n夏瑞泽\n戴傲\n叶宇轩",
         key="faculty_roster",
         label_visibility="collapsed",
-        height=130
+        height=130,
+        value=ocr_default
     )
 
     ocr_warning2 = st.empty()
@@ -713,11 +861,15 @@ def page_faculty():
     # 其他角色（可选）
     with st.expander("其他角色（可选，不参与分配）"):
         c1, c2 = st.columns(2)
-        meta1 = c1.text_area("总负责", key="f_meta1", height=52, placeholder="（可选）")
-        meta2 = c2.text_area("场控", key="f_meta2", height=52, placeholder="（可选）")
+        meta1 = c1.text_area("总负责", key="f_meta1", height=52, placeholder="（可选）",
+                             value=ocr_meta_default.get('总负责', ''))
+        meta2 = c2.text_area("场控", key="f_meta2", height=52, placeholder="（可选）",
+                             value=ocr_meta_default.get('场控', ''))
         c3, c4 = st.columns(2)
-        meta3 = c3.text_area("后勤", key="f_meta3", height=52, placeholder="（可选）")
-        meta4 = c4.text_area("摄影", key="f_meta4", height=52, placeholder="（可选）")
+        meta3 = c3.text_area("后勤", key="f_meta3", height=52, placeholder="（可选）",
+                             value=ocr_meta_default.get('后勤', ''))
+        meta4 = c4.text_area("摄影", key="f_meta4", height=52, placeholder="（可选）",
+                             value=ocr_meta_default.get('摄影', ''))
 
     # 生成按钮
     can_gen = excel_file is not None and (roster_text.strip() or image_file is not None)
@@ -729,14 +881,33 @@ def page_faculty():
                 excel_bytes = excel_file.read()
                 ocr_parsed = ''
 
+                ocr_debug_raw = ''
+                ocr_debug_columns = ''
                 if image_file:
+                    # 先清空所有旧 OCR 缓存 & widget key
+                    st.session_state.pop('ocr_roster_result', None)
+                    st.session_state.pop('ocr_meta_result', None)
+                    st.session_state.pop('ocr_pending', None)
+                    for k in ['faculty_roster', 'f_meta1', 'f_meta2', 'f_meta3', 'f_meta4']:
+                        st.session_state.pop(k, None)
+
                     img_bytes = image_file.read()
                     if len(img_bytes) > 0:
-                        ocr_parsed = ocr_faculty_roster(img_bytes, excel_bytes)
+                        ocr_parsed, ocr_debug_raw, ocr_debug_columns = ocr_faculty_roster(img_bytes, excel_bytes)
                         if ocr_parsed:
-                            roster_text = ocr_parsed if not roster_text.strip() else roster_text
+                            # 直接覆盖，禁止与旧名单拼接
+                            st.session_state.ocr_roster_result = ocr_parsed
+                            st.session_state.ocr_meta_result = {}
+                            st.session_state.ocr_pending = True
                             ocr_warning2.info("⚠️ OCR 识别结果已填入下方，请核对修正后再点生成")
+                            st.rerun()
+                        else:
+                            ocr_warning2.warning("OCR 未识别到任何队列人员，请手动输入或重新拍照")
 
+                # rerun 后 OCR 结果已回填，直接用 session_state 中的值
+                if 'ocr_pending' in st.session_state:
+                    roster_text = st.session_state.ocr_roster_result
+                    st.session_state.pop('ocr_pending', None)
                 if not roster_text.strip():
                     st.error("请提供队列人员名单或上传照片")
                     st.stop()
@@ -837,6 +1008,10 @@ def page_faculty():
 
                     if ocr_parsed:
                         st.text_area("OCR 识别结果（可复制到上方修正）", value=ocr_parsed, height=120, key="faculty_ocr_result")
+                    if ocr_debug_raw:
+                        st.text_area("调试-OCR原始文本", value=ocr_debug_raw, height=120, key="faculty_debug_raw")
+                    if ocr_debug_columns:
+                        st.text_area("调试-列聚类结果", value=ocr_debug_columns, height=120, key="faculty_debug_cols")
 
                 finally:
                     os.unlink(tmp)

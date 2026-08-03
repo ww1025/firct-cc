@@ -791,21 +791,19 @@ header .brand{display:flex;align-items:center;gap:12px}
 header h1{font-family:var(--font-heading);font-size:18px;font-weight:700;letter-spacing:.08em;color:var(--white)}
 header .stars{display:flex;gap:4px;font-size:14px;color:var(--gold);line-height:1}
 /* === MAIN === */
-main{max-width:760px;margin:56px auto 48px;padding:0 24px;position:relative;z-index:1}
-/* === ENTRIES GRID === */
-.entries{display:grid;grid-template-columns:1fr 1fr;gap:20px;animation:fadeInUp .8s ease-out .15s both}
-@media(max-width:640px){.entries{grid-template-columns:1fr}}
+main{max-width:560px;margin:56px auto 48px;padding:0 24px;position:relative;z-index:1}
 /* === CARD === */
-.card{display:block;background:var(--white);border:1px solid rgba(184,22,22,.08);border-left:3px solid var(--gold);border-radius:8px;padding:40px 28px;text-align:center;text-decoration:none;color:inherit;cursor:pointer;transition:all .3s ease;box-shadow:0 2px 12px rgba(0,0,0,.04);position:relative;overflow:hidden}
+.card-wrap{animation:fadeInUp .8s ease-out .15s both}
+.card{display:block;background:var(--white);border:1px solid rgba(184,22,22,.08);border-left:3px solid var(--gold);border-radius:8px;padding:44px 36px;text-align:center;text-decoration:none;color:inherit;cursor:pointer;transition:all .3s ease;box-shadow:0 2px 12px rgba(0,0,0,.04);position:relative;overflow:hidden}
 .card:hover{border-left-color:var(--flag-red);transform:translateY(-4px);box-shadow:0 8px 28px rgba(184,22,22,.1)}
-.card .icon{font-size:42px;margin-bottom:14px;display:block;transition:transform .3s}
+.card .icon{font-size:44px;margin-bottom:14px;display:block;transition:transform .3s}
 .card:hover .icon{transform:scale(1.05)}
 .card .star-deco{display:inline-block;color:var(--gold);font-size:12px;margin:0 6px}
-.card h2{font-family:var(--font-heading);font-size:18px;font-weight:700;color:var(--green-900);margin-bottom:10px;letter-spacing:.06em}
+.card h2{font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--green-900);margin-bottom:10px;letter-spacing:.06em}
 .card p{font-size:13px;color:var(--ink-light);line-height:1.7}
 /* Gold line accent at top of card */
-.card::before{content:'';display:block;width:40px;height:2px;background:var(--gold);margin:0 auto 16px;transition:width .3s,background .3s}
-.card:hover::before{width:56px;background:var(--flag-red)}
+.card::before{content:'';display:block;width:48px;height:2px;background:var(--gold);margin:0 auto 18px;transition:width .3s,background .3s}
+.card:hover::before{width:64px;background:var(--flag-red)}
 /* === FOOTER === */
 footer{text-align:center;padding:32px;font-family:var(--font-heading);font-size:12px;color:var(--green-700);letter-spacing:.06em;position:relative;z-index:1;border-top:1px solid rgba(184,22,22,.08)}
 footer .footer-star{color:var(--gold);font-size:10px;margin:0 6px}
@@ -817,23 +815,16 @@ footer .footer-star{color:var(--gold);font-size:10px;margin:0 6px}
 <div class="stars">&#9733;</div>
 </header>
 <main>
-<div class="entries">
+<div class="card-wrap">
 <a href="/faculty" class="card">
   <div class="icon">&#127891;</div>
   <h2>院系升旗礼服分配 <span class="star-deco">&#9733;</span></h2>
   <p>上传礼服库存表 + 拍照上传人员安排表<br>自动识别 &#8594; 按尺寸排序 &#8594; 冲突检测 &#8594; 下载分配表</p>
 </a>
-<a href="/warehouse" class="card">
-  <div class="icon">&#128230;</div>
-  <h2>物资仓库 <span class="star-deco">&#9733;</span></h2>
-  <p>马靴 · 腰带 · 礼服 存放位置<br>搜索库位 / 姓名 / 尺码</p>
-</a>
 </div>
 </main>
 <footer><span class="footer-star">&#9733;</span> 浙江大学国旗仪仗队 &copy; 2026 <span class="footer-star">&#9733;</span></footer>
 </body></html>'''
-
-
 # ── Routes ──
 @app.route('/')
 def index():
@@ -842,11 +833,6 @@ def index():
 @app.route('/faculty')
 def faculty():
     return FACULTY_HTML
-
-@app.route('/warehouse')
-def warehouse():
-    with open('warehouse.html', 'r', encoding='utf-8') as f:
-        return f.read()
 
 @app.route('/generate', methods=['POST'])
 def generate():
