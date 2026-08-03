@@ -963,30 +963,28 @@ elif st.session_state.page == 'faculty':
 
     if st.button(btn_label, disabled=btn_disabled, use_container_width=True):
         excel_bytes = excel_file.getvalue()
+        roster_val = roster.strip()
 
-        with st.spinner("正在处理..."):
-
-            # ── Step A: OCR（有图片 + 名单为空 才触发） ──
-            roster_val = roster.strip()
-            if image_file and not roster_val:
-                img_bytes = image_file.getvalue()
-                if len(img_bytes) > 0:
-                    st.info("AI 正在从照片中识别人员名单...")
+        # OCR：有照片 + 名单为空
+        if image_file and not roster_val:
+            img_bytes = image_file.getvalue()
+            if len(img_bytes) > 0:
+                with st.status("AI 正在识别照片中的人员名单...", expanded=True):
                     ocr_text = ocr_faculty_roster(img_bytes, excel_bytes)
-                    if ocr_text:
-                        st.session_state.ocr_roster = ocr_text
-                        st.success(f"识别完成，名单已自动填入。核对后再次点击「预览排序 & 生成分配表」")
-                        st.stop()
-                    else:
-                        st.warning("OCR 未能识别到人名，可手动输入后再次点击生成")
-                        st.stop()
-
-            # ── Step B: 校验名单 ──
-            if not roster_val:
-                st.error("请先在文本框输入队列人员名单，或上传照片让 AI 自动识别")
+                if ocr_text:
+                    st.session_state.ocr_roster = ocr_text
+                    st.success("识别完成，名单已填入下方文本框。核对后再次点击生成按钮")
+                else:
+                    st.warning("OCR 未识别到人名，请手动输入名单")
                 st.stop()
 
-            # ── Step C: 生成 ──
+        # 没名单
+        if not roster_val:
+            st.error("请先在文本框输入队列人员名单，或上传照片让 AI 自动识别")
+            st.stop()
+
+        # ── 生成分配方案 ──
+        with st.status("正在生成分配方案...", expanded=True):
             try:
                 queue_names = []
                 for chunk in re.split(r'[、，,\n\s]+', roster_val):
