@@ -958,27 +958,29 @@ elif st.session_state.page == 'faculty':
 
     # 生成按钮
     can_gen = excel_file is not None
-    btn_disabled = not can_gen
-    btn_label = "上传 Excel 后可用" if not can_gen else "\U0001F50D 预览排序 & 生成分配表"
+    btn_label = "\U0001F50D 预览排序 & 生成分配表"
 
-    if st.button(btn_label, disabled=btn_disabled, use_container_width=True):
+    clicked = st.button(btn_label, disabled=not can_gen, use_container_width=True)
+
+    # —— OCR 触发：独立于按钮，有照片+名单为空+Excel已上传 自动运行 ——
+    ocr_triggered = (excel_file is not None and image_file is not None and not roster.strip())
+    if ocr_triggered:
+        img_bytes = image_file.getvalue()
+        if len(img_bytes) > 0:
+            with st.status("AI 正在识别照片中的人员名单...", expanded=True):
+                ocr_text = ocr_faculty_roster(img_bytes, excel_file.getvalue())
+            if ocr_text:
+                st.session_state.ocr_roster = ocr_text
+                st.success("识别完成，名单已填入下方文本框。核对后再次点击生成按钮")
+                st.rerun()
+            else:
+                st.warning("OCR 未识别到人名，请手动输入名单")
+
+    # —— 点击按钮生成 ——
+    if clicked:
         excel_bytes = excel_file.getvalue()
         roster_val = roster.strip()
 
-        # OCR：有照片 + 名单为空
-        if image_file and not roster_val:
-            img_bytes = image_file.getvalue()
-            if len(img_bytes) > 0:
-                with st.status("AI 正在识别照片中的人员名单...", expanded=True):
-                    ocr_text = ocr_faculty_roster(img_bytes, excel_bytes)
-                if ocr_text:
-                    st.session_state.ocr_roster = ocr_text
-                    st.success("识别完成，名单已填入下方文本框。核对后再次点击生成按钮")
-                else:
-                    st.warning("OCR 未识别到人名，请手动输入名单")
-                st.stop()
-
-        # 没名单
         if not roster_val:
             st.error("请先在文本框输入队列人员名单，或上传照片让 AI 自动识别")
             st.stop()
