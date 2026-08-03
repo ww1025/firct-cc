@@ -962,8 +962,12 @@ elif st.session_state.page == 'faculty':
 
     clicked = st.button(btn_label, disabled=not can_gen, use_container_width=True)
 
-    # —— OCR 触发：独立于按钮，有照片+名单为空+Excel已上传 自动运行 ——
-    ocr_triggered = (excel_file is not None and image_file is not None and not roster.strip())
+    # —— OCR 触发：独立于按钮，有照片+名单为空+Excel已上传 自动运行（仅一次）——
+    ocr_triggered = (
+        excel_file is not None
+        and image_file is not None
+        and st.session_state.get('ocr_roster', '') == ''
+    )
     if ocr_triggered:
         img_bytes = image_file.getvalue()
         if len(img_bytes) > 0:
@@ -974,6 +978,7 @@ elif st.session_state.page == 'faculty':
                 st.success("识别完成，名单已填入下方文本框。核对后再次点击生成按钮")
                 st.rerun()
             else:
+                st.session_state.ocr_roster = '__EMPTY__'  # 标记已跑过 OCR，不再重复
                 st.warning("OCR 未识别到人名，请手动输入名单")
 
     # —— 点击按钮生成 ——
