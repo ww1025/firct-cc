@@ -787,21 +787,33 @@ section.main > .block-container {padding-top: 0 !important}
     color: rgba(255,255,255,.7) !important;
 }
 
-/* 文件上传区域 */
+/* 文件上传区域 - 柔和风格 */
 [data-testid="stFileUploader"] {
-    background: #fff;
-    border: 2px dashed #d4d4cc;
+    background: #fefcf8;
+    border: 2px dashed #ccc5b8;
     border-radius: 8px;
     padding: 20px;
 }
-[data-testid="stFileUploader"]:hover {border-color:#B81616}
+[data-testid="stFileUploader"]:hover {border-color:#B81616; background: #fff}
 
-/* text_area */
-textarea {font-family:'Microsoft YaHei',sans-serif !important;font-size:14px !important}
+/* text_area / text_input - 柔和边框 */
+textarea, input[type="text"] {
+    font-family:'Microsoft YaHei',sans-serif !important;
+    font-size:14px !important;
+    border: 1px solid #d4cfc4 !important;
+    background: #fefcf8 !important;
+    color: #2c1810 !important;
+}
+textarea:focus, input[type="text"]:focus {
+    border-color: #B81616 !important;
+    box-shadow: 0 0 0 2px rgba(184,22,22,.1) !important;
+}
 
 /* expander */
 [data-testid="stExpander"] {
-    background:#fff;border:1px solid rgba(184,22,22,.08);border-radius:8px;
+    background: transparent;
+    border: 1px solid #e8e0d8;
+    border-radius: 8px;
 }
 
 /* metric */
