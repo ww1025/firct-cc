@@ -1,4 +1,4 @@
-"""
+﻿"""
 浙江大学国旗仪仗队 —— Streamlit Cloud 部署版
 首页 + 院系礼服分配 + 物资仓库
 """
@@ -894,9 +894,16 @@ if st.session_state.page == 'home':
 
 
 elif st.session_state.page == 'faculty':
-    # 返回按钮
+    # 返回按钮 + 清空旧 OCR 缓存
     if st.button("← 返回首页", key="back_home"):
+        st.session_state.ocr_roster = ''
+        st.session_state._fac_entered = False
         st.session_state.page = 'home'; st.rerun()
+
+    # 首次进入清空残留
+    if not st.session_state.get('_fac_entered'):
+        st.session_state.ocr_roster = ''
+        st.session_state._fac_entered = True
 
     st.markdown("---")
 
@@ -942,6 +949,7 @@ elif st.session_state.page == 'faculty':
                 try:
                     excel_bytes = excel_file.getvalue()
 
+                    # OCR: 识别照片 → 回填到文本框，通知用户核对后再点一次
                     if image_file:
                         img_bytes = image_file.getvalue()
                         if len(img_bytes) > 0:
@@ -949,11 +957,12 @@ elif st.session_state.page == 'faculty':
                             if ocr_text:
                                 st.session_state.ocr_roster = ocr_text
                                 st.info("已识别人员名单，请核对后再次点击生成按钮")
-                                st.stop()  # 不用 rerun——让用户手动确认后再点
+                                st.stop()
 
                     if not roster.strip():
                         st.error("请提供队列人员名单"); st.stop()
 
+                    # ── 生成分配方案 ──
                     queue_names = []
                     for chunk in re.split(r'[、，,\n\s]+', roster.strip()):
                         n = chunk.strip()
@@ -976,6 +985,9 @@ elif st.session_state.page == 'faculty':
                         b64 = generate_faculty_excel(faculty_persons, changed)
                         sorted_people = sort_people_by_uniform(faculty_persons)
 
+                        # 生成完成后清空 OCR 缓存
+                        st.session_state.ocr_roster = ''
+
                         st.success(f"生成完成: {len(faculty_persons)} 人, {len(conflicts)} 冲突, {len(reassigns)} 重分配")
 
                         c1, c2, c3 = st.columns(3)
@@ -983,7 +995,6 @@ elif st.session_state.page == 'faculty':
                         c2.metric("重分配", len(reassigns))
                         c3.metric("受影响人数", len(set(r['person'] for r in reassigns)))
 
-                        # 排序列表
                         st.markdown("#### 排序后人员列表")
                         import pandas as pd
                         rows = []
