@@ -940,10 +940,10 @@ elif st.session_state.page == 'faculty':
         if excel_file:
             with st.spinner("正在处理..."):
                 try:
-                    excel_bytes = excel_file.read()
+                    excel_bytes = excel_file.getvalue()  # 读缓存，不用 .read()
 
                     if image_file:
-                        img_bytes = image_file.read()
+                        img_bytes = image_file.getvalue()
                         if len(img_bytes) > 0:
                             ocr_text = ocr_faculty_roster(img_bytes, excel_bytes)
                             if ocr_text:
