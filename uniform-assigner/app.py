@@ -910,6 +910,7 @@ elif st.session_state.page == 'faculty':
     if st.button("← 返回首页", key="back_home"):
         st.session_state.fac_roster = ''
         st.session_state.fac_img = None
+        st.session_state._ocr_done = False
         st.session_state._fac_entered = False
         st.session_state.page = 'home'; st.rerun()
 
@@ -926,32 +927,25 @@ elif st.session_state.page == 'faculty':
 
     st.markdown("---")
 
-    # 步骤② 照片上传 + OCR 按钮
+    # 步骤② 照片上传
     st.markdown("""
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <span style="width:28px;height:28px;background:#B81616;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'SimSun',serif;font-size:14px;flex-shrink:0">2</span>
       <span style="font-family:'SimSun',serif;font-weight:700;font-size:16px;color:#0f2518">拍照上传人员安排表</span>
-      <span style="font-size:12px;color:#9c8a7a">（可选，上传后点击下方按钮 AI 自动识别）</span>
+      <span style="font-size:12px;color:#9c8a7a">（可选，AI 自动识别。有照片且名单为空时自动触发）</span>
     </div>
     """, unsafe_allow_html=True)
     image_file = st.file_uploader("上传照片", type=['png','jpg','jpeg'], key="fac_img", label_visibility="collapsed")
 
-    # OCR 识别按钮——手动触发，上传了照片+Excel才能点击
-    ocr_clicked = False
-    if image_file is not None and excel_file is not None:
-        ocr_clicked = st.button("🤖 AI 识别照片中的人员名单", use_container_width=True)
-
-    if ocr_clicked:
-        st.info("AI 正在识别照片中的人员名单...")
-        img_bytes = image_file.getvalue()
-        ocr_text = ocr_faculty_roster(img_bytes, excel_file.getvalue())
-        if ocr_text:
-            st.session_state.fac_roster = ocr_text
-            st.success("识别完成，名单已填入下方。核对后点击生成按钮")
-        else:
-            st.session_state.fac_roster = '__EMPTY__'
-            st.warning("OCR 未识别到人名，请手动输入名单")
-        st.rerun()
+    # —— OCR 自动触发：Excel + 照片都上传了，且本回合还没试过 OCR ——
+    if excel_file is not None and image_file is not None:
+        if not st.session_state.get('_ocr_done', False):
+            st.info("AI 正在识别照片中的人员名单...")
+            ocr_text = ocr_faculty_roster(image_file.getvalue(), excel_file.getvalue())
+            if ocr_text:
+                st.session_state.fac_roster = ocr_text
+            st.session_state._ocr_done = True
+            st.rerun()
 
     # 步骤③ 名单
     st.markdown("""
@@ -962,10 +956,7 @@ elif st.session_state.page == 'faculty':
     </div>
     """, unsafe_allow_html=True)
 
-    default_txt = st.session_state.get('fac_roster', '')
-    if default_txt == '__EMPTY__':
-        default_txt = ''
-    roster = st.text_area("队列人员", value=default_txt,
+    roster = st.text_area("队列人员",
                           placeholder="林珩\n韩雅丽\n艾克达\n张鹏\n夏瑞泽\n戴傲\n叶宇轩",
                           key="fac_roster", height=130, label_visibility="collapsed")
 
