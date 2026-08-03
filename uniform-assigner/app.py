@@ -906,43 +906,45 @@ if st.session_state.page == 'home':
 
 
 elif st.session_state.page == 'faculty':
-    # 返回按钮 + 清空旧 OCR 缓存
+    # 返回首页
     if st.button("← 返回首页", key="back_home"):
         st.session_state.ocr_roster = ''
         st.session_state._fac_entered = False
         st.session_state.page = 'home'; st.rerun()
 
-    # 首次进入清空残留
-    if not st.session_state.get('_fac_entered'):
-        st.session_state.ocr_roster = ''
-        st.session_state._fac_entered = True
-
     st.markdown("---")
 
-    # 步骤卡片
+    # 步骤①
     st.markdown("""
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <span style="width:28px;height:28px;background:#B81616;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'SimSun',serif;font-size:14px;flex-shrink:0">1</span>
       <span style="font-family:'SimSun',serif;font-weight:700;font-size:16px;color:#0f2518">上传礼服库存表</span>
     </div>
     """, unsafe_allow_html=True)
     excel_file = st.file_uploader("拖拽或点击上传 .xlsx 文件", type=['xlsx'], key="fac_excel", label_visibility="collapsed")
 
+    st.markdown("---")
+
+    # 步骤② 照片上传
     st.markdown("""
-    <div style="display:flex;align-items:center;gap:10px;margin:24px 0 16px 0">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <span style="width:28px;height:28px;background:#B81616;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'SimSun',serif;font-size:14px;flex-shrink:0">2</span>
       <span style="font-family:'SimSun',serif;font-weight:700;font-size:16px;color:#0f2518">拍照上传人员安排表</span>
-      <span style="font-size:12px;color:#9c8a7a">（可选，AI 自动识别）</span>
+      <span style="font-size:12px;color:#9c8a7a">（可选，AI 自动识别。有照片且名单为空时自动触发）</span>
     </div>
     """, unsafe_allow_html=True)
     image_file = st.file_uploader("上传照片", type=['png','jpg','jpeg'], key="fac_img", label_visibility="collapsed")
 
+    # 步骤③ 名单
     st.markdown("""
-    <div style="color:#9c8a7a;font-size:12px;text-align:center;margin:8px 0 16px 0">—— 或手动输入 ——</div>
+    <div style="display:flex;align-items:center;gap:10px;margin:20px 0 12px 0">
+      <span style="width:28px;height:28px;background:#B81616;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'SimSun',serif;font-size:14px;flex-shrink:0">3</span>
+      <span style="font-family:'SimSun',serif;font-weight:700;font-size:16px;color:#0f2518">输入或修正队列人员</span>
+      <span style="font-size:12px;color:#9c8a7a">（每行一人或顿号分隔）</span>
+    </div>
     """, unsafe_allow_html=True)
 
-    ocr_default = st.session_state.get('ocr_roster', '')
-    roster = st.text_area("队列人员（每行一人或顿号分隔）", value=ocr_default,
+    roster = st.text_area("队列人员", value=st.session_state.get('ocr_roster', ''),
                           placeholder="林珩\n韩雅丽\n艾克达\n张鹏\n夏瑞泽\n戴傲\n叶宇轩",
                           key="fac_roster", height=130, label_visibility="collapsed")
 
@@ -954,108 +956,117 @@ elif st.session_state.page == 'faculty':
         m3_ = m3.text_input("后勤", key="fm3")
         m4_ = m4.text_input("摄影", key="fm4")
 
-    can_gen = excel_file and (roster.strip() or image_file)
-    if st.button("\U0001F50D 预览排序 & 生成分配表", disabled=not can_gen, use_container_width=True):
-        if excel_file:
-            with st.spinner("正在处理..."):
+    # 生成按钮
+    can_gen = excel_file is not None
+    btn_disabled = not can_gen
+    btn_label = "上传 Excel 后可用" if not can_gen else "\U0001F50D 预览排序 & 生成分配表"
+
+    if st.button(btn_label, disabled=btn_disabled, use_container_width=True):
+        excel_bytes = excel_file.getvalue()
+
+        with st.spinner("正在处理..."):
+
+            # ── Step A: OCR（有图片 + 名单为空 才触发） ──
+            roster_val = roster.strip()
+            if image_file and not roster_val:
+                img_bytes = image_file.getvalue()
+                if len(img_bytes) > 0:
+                    st.info("AI 正在从照片中识别人员名单...")
+                    ocr_text = ocr_faculty_roster(img_bytes, excel_bytes)
+                    if ocr_text:
+                        st.session_state.ocr_roster = ocr_text
+                        st.success(f"识别完成，名单已自动填入。核对后再次点击「预览排序 & 生成分配表」")
+                        st.stop()
+                    else:
+                        st.warning("OCR 未能识别到人名，可手动输入后再次点击生成")
+                        st.stop()
+
+            # ── Step B: 校验名单 ──
+            if not roster_val:
+                st.error("请先在文本框输入队列人员名单，或上传照片让 AI 自动识别")
+                st.stop()
+
+            # ── Step C: 生成 ──
+            try:
+                queue_names = []
+                for chunk in re.split(r'[、，,\n\s]+', roster_val):
+                    n = chunk.strip()
+                    if len(n) >= 2: queue_names.append(n)
+
+                with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as t:
+                    t.write(excel_bytes); tmp = t.name
+
                 try:
-                    excel_bytes = excel_file.getvalue()
+                    wb = openpyxl.load_workbook(tmp)
+                    all_persons = parse_equipment_sheet(wb['装备分配'])
+                    name_map = {p['name']: p for p in all_persons}
+                    pool = build_pool(wb)
 
-                    # OCR: 仅在首次——有图片且名单为空时运行
-                    if image_file and not roster.strip():
-                        img_bytes = image_file.getvalue()
-                        if len(img_bytes) > 0:
-                            st.info("AI 正在识别照片...")
-                            ocr_text = ocr_faculty_roster(img_bytes, excel_bytes)
-                            if ocr_text:
-                                st.session_state.ocr_roster = ocr_text
-                                st.success("识别完成，名单已填入。请核对后再次点击生成")
-                            else:
-                                st.warning("未能识别到人员，请手动输入")
-                            st.stop()
+                    faculty_persons = [dict(name_map[n]) for n in queue_names if n in name_map]
+                    missing = [n for n in queue_names if n not in name_map]
 
-                    if not roster.strip():
-                        st.error("请提供队列人员名单"); st.stop()
+                    conflicts = detect_faculty_conflicts(faculty_persons)
+                    reassigns, changed = resolve_faculty_conflicts(conflicts, faculty_persons, pool)
+                    b64 = generate_faculty_excel(faculty_persons, changed)
+                    sorted_people = sort_people_by_uniform(faculty_persons)
 
-                    # ── 生成分配方案 ──
-                    queue_names = []
-                    for chunk in re.split(r'[、，,\n\s]+', roster.strip()):
-                        n = chunk.strip()
-                        if len(n) >= 2: queue_names.append(n)
+                    st.session_state.ocr_roster = ''  # 生成成功清缓存
 
-                    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as t:
-                        t.write(excel_bytes); tmp = t.name
+                    msg = f"生成完成: {len(faculty_persons)} 人, {len(conflicts)} 冲突, {len(reassigns)} 重分配"
+                    if missing: msg += f"（{len(missing)} 人未在库存中找到：{', '.join(missing)}）"
+                    st.success(msg)
 
-                    try:
-                        wb = openpyxl.load_workbook(tmp)
-                        all_persons = parse_equipment_sheet(wb['装备分配'])
-                        name_map = {p['name']: p for p in all_persons}
-                        pool = build_pool(wb)
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("冲突数", len(conflicts))
+                    c2.metric("重分配", len(reassigns))
+                    c3.metric("受影响人数", len(set(r['person'] for r in reassigns)))
 
-                        faculty_persons = [dict(name_map[n]) for n in queue_names if n in name_map]
-                        missing = [n for n in queue_names if n not in name_map]
+                    st.markdown("#### 排序后人员列表")
+                    import pandas as pd
+                    rows = []
+                    for i, p in enumerate(sorted_people):
+                        ch = changed.get(p['name'], {})
+                        rows.append({
+                            "序号": i+1, "姓名": p['name'],
+                            "性别": '女' if p['gender']=='F' else '男',
+                            "礼服": p.get('uniform',''),
+                            "礼帽": p.get('hat',''),
+                            "马靴": p.get('boots',''),
+                            "腰带": p.get('belt',''),
+                            "变更": '; '.join(f'{t}→{nv}' for t,nv in ch.items()) if ch else ''
+                        })
+                    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-                        conflicts = detect_faculty_conflicts(faculty_persons)
-                        reassigns, changed = resolve_faculty_conflicts(conflicts, faculty_persons, pool)
-                        b64 = generate_faculty_excel(faculty_persons, changed)
-                        sorted_people = sort_people_by_uniform(faculty_persons)
+                    if conflicts:
+                        st.markdown("#### 冲突详情")
+                        type_names = {'uniform':'礼服','hat':'礼帽','boots':'马靴','belt':'腰带'}
+                        st.dataframe(pd.DataFrame([
+                            {"装备": type_names.get(c['item_type'],c['item_type']),
+                             "编号": c['item_code'], "需变动": c['person_to_move'],
+                             "保留": c['person_to_keep']} for c in conflicts
+                        ]), use_container_width=True, hide_index=True)
 
-                        # 生成完成后清空 OCR 缓存
-                        st.session_state.ocr_roster = ''
+                    if reassigns:
+                        st.markdown("#### 重分配方案")
+                        st.dataframe(pd.DataFrame([
+                            {"姓名": r['person'],
+                             "装备": type_names.get(r['item_type'],r['item_type']),
+                             "旧编号": r['old_item'], "新编号": r['new_item']} for r in reassigns
+                        ]), use_container_width=True, hide_index=True)
 
-                        st.success(f"生成完成: {len(faculty_persons)} 人, {len(conflicts)} 冲突, {len(reassigns)} 重分配")
+                    st.download_button("📥 下载礼服分配表 (.xlsx)",
+                                      data=base64.b64decode(b64),
+                                      file_name="院系升旗礼服分配.xlsx",
+                                      mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                      use_container_width=True)
 
-                        c1, c2, c3 = st.columns(3)
-                        c1.metric("冲突数", len(conflicts))
-                        c2.metric("重分配", len(reassigns))
-                        c3.metric("受影响人数", len(set(r['person'] for r in reassigns)))
+                finally:
+                    os.unlink(tmp)
 
-                        st.markdown("#### 排序后人员列表")
-                        import pandas as pd
-                        rows = []
-                        for i, p in enumerate(sorted_people):
-                            ch = changed.get(p['name'], {})
-                            rows.append({
-                                "序号": i+1, "姓名": p['name'],
-                                "性别": '女' if p['gender']=='F' else '男',
-                                "礼服": p.get('uniform',''),
-                                "礼帽": p.get('hat',''),
-                                "马靴": p.get('boots',''),
-                                "腰带": p.get('belt',''),
-                                "变更": '; '.join(f'{t}→{nv}' for t,nv in ch.items()) if ch else ''
-                            })
-                        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
-                        if conflicts:
-                            st.markdown("#### 冲突详情")
-                            type_names = {'uniform':'礼服','hat':'礼帽','boots':'马靴','belt':'腰带'}
-                            st.dataframe(pd.DataFrame([
-                                {"装备": type_names.get(c['item_type'],c['item_type']),
-                                 "编号": c['item_code'], "需变动": c['person_to_move'],
-                                 "保留": c['person_to_keep']} for c in conflicts
-                            ]), use_container_width=True, hide_index=True)
-
-                        if reassigns:
-                            st.markdown("#### 重分配方案")
-                            st.dataframe(pd.DataFrame([
-                                {"姓名": r['person'],
-                                 "装备": type_names.get(r['item_type'],r['item_type']),
-                                 "旧编号": r['old_item'], "新编号": r['new_item']} for r in reassigns
-                            ]), use_container_width=True, hide_index=True)
-
-                        st.download_button("📥 下载礼服分配表 (.xlsx)",
-                                          data=base64.b64decode(b64),
-                                          file_name="院系升旗礼服分配.xlsx",
-                                          mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                          use_container_width=True)
-
-                    finally:
-                        os.unlink(tmp)
-
-                except Exception as e:
-                    import traceback
-                    st.error(f"生成失败: {e}")
-                    with st.expander("详细错误"): st.code(traceback.format_exc())
+            except Exception as e:
+                import traceback
+                st.error(f"生成失败: {e}")
+                with st.expander("详细错误"): st.code(traceback.format_exc())
 
 
 elif st.session_state.page == 'warehouse':
