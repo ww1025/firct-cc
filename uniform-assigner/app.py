@@ -906,16 +906,17 @@ if st.session_state.page == 'home':
 
 
 elif st.session_state.page == 'faculty':
-    # 首次进入/返回首页时清空
-    if st.button("← 返回首页", key="back_home"):
+    # 返回首页——页面切换在按钮回调里直接做
+    back_home = st.button("← 返回首页", key="back_home")
+    if back_home:
         st.session_state.fac_roster = ''
         st.session_state.fac_img = None
         st.session_state._ocr_done = False
-        st.session_state._fac_entered = False
         st.session_state.page = 'home'; st.rerun()
 
     st.markdown("---")
 
+    # ====== 先放 OCR 逻辑（必须在 text_area 创建之前） ======
     # 步骤①
     st.markdown("""
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -937,16 +938,17 @@ elif st.session_state.page == 'faculty':
     """, unsafe_allow_html=True)
     image_file = st.file_uploader("上传照片", type=['png','jpg','jpeg'], key="fac_img", label_visibility="collapsed")
 
-    # —— OCR 自动触发：Excel + 照片都上传了，且本回合还没试过 OCR ——
+    # —— OCR 自动触发：必须在 text_area(key="fac_roster") 之前设置 session_state ——
     if excel_file is not None and image_file is not None:
         if not st.session_state.get('_ocr_done', False):
-            st.info("AI 正在识别照片中的人员名单...")
-            ocr_text = ocr_faculty_roster(image_file.getvalue(), excel_file.getvalue())
+            with st.spinner("AI 正在识别照片中的人员名单..."):
+                ocr_text = ocr_faculty_roster(image_file.getvalue(), excel_file.getvalue())
             if ocr_text:
-                st.session_state.fac_roster = ocr_text
+                st.session_state.fac_roster = ocr_text  # 这里写入，然后 rerun 后 text_area 会读到
             st.session_state._ocr_done = True
             st.rerun()
 
+    # ====== 然后是 text_area（OCR 已经写入 fac_roster 了） ======
     # 步骤③ 名单
     st.markdown("""
     <div style="display:flex;align-items:center;gap:10px;margin:20px 0 12px 0">
@@ -1004,8 +1006,6 @@ elif st.session_state.page == 'faculty':
                     reassigns, changed = resolve_faculty_conflicts(conflicts, faculty_persons, pool)
                     b64 = generate_faculty_excel(faculty_persons, changed)
                     sorted_people = sort_people_by_uniform(faculty_persons)
-
-                    st.session_state.fac_roster = ''  # 生成成功清缓存
 
                     msg = f"生成完成: {len(faculty_persons)} 人, {len(conflicts)} 冲突, {len(reassigns)} 重分配"
                     if missing: msg += f"（{len(missing)} 人未在库存中找到：{', '.join(missing)}）"
