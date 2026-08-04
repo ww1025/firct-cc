@@ -476,12 +476,6 @@ def generate_faculty_excel(persons, changed):
         ws1.cell(row=row, column=5).value = p.get('belt', '')
 
         if name_changed:
-            notes = []
-            type_names = {'uniform': '礼服', 'hat': '礼帽', 'boots': '马靴', 'belt': '腰带'}
-            for t, new in name_changed.items():
-                notes.append(f'{type_names.get(t, t)}→{new}')
-            ws1.cell(row=row, column=6).value = '；'.join(notes)
-
             change_map = {'uniform': 2, 'hat': 3, 'boots': 4, 'belt': 5}
             for eq_type, col in change_map.items():
                 if eq_type in name_changed:
