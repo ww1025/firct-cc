@@ -725,7 +725,7 @@ def _wh_render_boots(data):
     cg = [{'n':1,'c':4},{'n':2,'c':4},{'n':3,'c':3},{'n':4,'c':3}]
     rg = [{'n':'A','r':2},{'n':'B','r':4},{'n':'C','r':5}]
 
-    h = '<div class="section"><div class="section-header"><span class="tag" style="background:#E65100">🥾</span>马靴 · ' + str(len(flat)) + '库位</div>'
+    h = '<details class="section" open><summary class="section-header"><span class="tag" style="background:#E65100">🥾</span>马靴 · ' + str(len(flat)) + '库位 ▼</summary>'
     h += '<div class="table-wrap"><div class="grid-table" style="grid-template-columns:28px repeat(14,minmax(64px,1fr))">'
     h += '<div class="cell gh" style="background:#fafafa"></div>'
     for g in cg:
@@ -744,7 +744,7 @@ def _wh_render_boots(data):
                 else:
                     h += '<div class="cell empty"></div>'
         ri += rg2['r']
-    h += '</div></div></div>'
+    h += '</div></div></details>'
     return h
 
 def _wh_belt_cell(item):
@@ -785,7 +785,7 @@ def _wh_render_section(items, item_type, title, color):
     ccl = ['#E65100','#FF8F00','#F9A825','#FFB300','#FFC107','#FFCA28']
     cell_fn = _wh_belt_cell if item_type == 'belt' else _wh_uniform_cell
 
-    h = f'<div class="section"><div class="section-header"><span class="tag" style="background:{color}">{title[:2]}</span>{title} · {len(items)}项</div><div class="table-wrap">'
+    h = f'<details class="section"><summary class="section-header"><span class="tag" style="background:{color}">{title[:2]}</span>{title} · {len(items)}项 ▼</summary><div class="table-wrap">'
     for ci, cab in enumerate(cabs):
         grp = [it for it in items if it.get('cabinet') == cab]
         if not grp:
@@ -795,7 +795,7 @@ def _wh_render_section(items, item_type, title, color):
         for item in grp:
             h += cell_fn(item)
         h += '</div>'
-    h += '</div></div>'
+    h += '</div></details>'
     return h
 
 def render_warehouse_full():
@@ -826,6 +826,9 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f0ec;c
 .suggestions .item:hover{background:#FFF3E0;color:#111}
 .main{padding:8px}
 .section{margin-bottom:12px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden;border:1px solid #e8e0d8}
+details.section summary::-webkit-details-marker{display:none}
+details.section summary{list-style:none;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+details.section summary:active{opacity:.7}
 .section-header{padding:8px 14px;font-size:.8rem;font-weight:700;border-bottom:2px solid #8B0000;display:flex;align-items:center;gap:8px;background:#fff}
 .section-header .tag{padding:3px 10px;border-radius:4px;color:#fff;font-size:.65rem;font-weight:600}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:4px}
