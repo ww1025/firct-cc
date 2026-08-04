@@ -1,4 +1,4 @@
-﻿"""
+"""
 浙江大学国旗仪仗队 —— Streamlit Cloud 部署版
 首页 + 院系礼服分配 + 物资仓库
 """
@@ -14,14 +14,7 @@ st.set_page_config(page_title="浙江大学国旗仪仗队", page_icon="🇨🇳
 
 # ── CSS 注入 ──
 def inject_css():
-    st.markdown("""
-    <style>
-    #MainMenu, footer, header[data-testid="stHeader"] {visibility: hidden}
-    .stApp {background-color: #F5F1E6}
-    .block-container {padding-top: 0 !important; padding-bottom: 0 !important}
-    section.main {padding: 0 !important}
-    </style>
-    """, unsafe_allow_html=True)
+    pass  # 所有 CSS 已合并到主 style 块中
 
 # ── 国旗红样式 ──
 FLAG_STYLE = """
@@ -630,6 +623,45 @@ def warehouse_data_json():
     return json.dumps(data, ensure_ascii=False)
 
 
+# ── HTML 渲染辅助函数（匹配 Flask 版表格样式）──
+def make_person_rows(sorted_people, changed):
+    rows = []
+    for i, p in enumerate(sorted_people):
+        ch = changed.get(p['name'], {})
+        g = '女' if p.get('gender')=='F' else '男'
+        items = ['uniform','hat','boots','belt']
+        cells = []
+        for k in items:
+            v = p.get(k, '')
+            if ch.get(k):
+                v += f'<br><span class="old">原来的→</span>'
+                cells.append(f'<td class="hl">{v}</td>')
+            else:
+                cells.append(f'<td>{v}</td>')
+        rows.append(f'<tr><td>{i+1}</td><td><b>{p["name"]}</b></td><td>{g}</td>{"".join(cells)}</tr>')
+    return '\n'.join(rows)
+
+
+def make_conflicts_html(conflicts, type_names):
+    if not conflicts:
+        return ''
+    rows = []
+    for c in conflicts:
+        t = type_names.get(c['item_type'], c['item_type'])
+        rows.append(f'<tr><td>{t}</td><td>{c["item_code"]}</td><td>{c["person_to_move"]}</td><td>{c["person_to_keep"]}</td></tr>')
+    return f'<div class="sect-title">冲突详情</div><table><tr><th>装备类型</th><th>编号</th><th>需变动</th><th>保留</th></tr>{"".join(rows)}</table>'
+
+
+def make_reassigns_html(reassigns, type_names):
+    if not reassigns:
+        return ''
+    rows = []
+    for r in reassigns:
+        t = type_names.get(r['item_type'], r['item_type'])
+        rows.append(f'<tr><td>{r["person"]}</td><td>{t}</td><td class="old">{r["old_item"]}</td><td class="hl">{r["new_item"]}</td></tr>')
+    return f'<div class="sect-title">重分配方案</div><table><tr><th>姓名</th><th>装备</th><th>旧编号</th><th>新编号</th></tr>{"".join(rows)}</table>'
+
+
 def render_warehouse():
     """直接在 Python 中渲染物资仓库为 HTML，不需要 JS 动态生成"""
     import json
@@ -720,116 +752,243 @@ if 'page' not in st.session_state:
 
 inject_css()
 
-# ── 全局样式 + Header ──
 st.markdown("""
 <style>
-/* 修复 Streamlit 默认 padding 导致的 header 遮挡 */
-.stApp {background-color: #F5F1E6}
+/* ============================================================
+   全局 CSS —— 与 Flask 本地版完全一致
+   自动从 server.py FACULTY_HTML / HOME_HTML 移植
+   ============================================================ */
+
+/* CSS 变量 */
+:root {
+  --flag-red: #B81616; --flag-red-dark: #8E1010; --flag-red-disabled: #D9A4A4;
+  --gold: #F5C518; --gold-light: #FDE68A;
+  --green-900: #0f2518; --green-700: #1a3a2a; --green-500: #2d5a3f; --green-300: #5a8a6a;
+  --cream: #F5F1E6; --paper-warm: #f0ebe3; --paper-card: #fefcf8;
+  --ink: #2c1810; --ink-light: #5c4a3a; --ink-faint: #9c8a7a;
+  --white: #ffffff; --gray-300: #d4d4cc; --gray-500: #8a8a80;
+  --font-heading: 'SimSun','KaiTi','宋体','楷体','Microsoft YaHei',serif;
+  --font-body: 'Microsoft YaHei','PingFang SC',system-ui,sans-serif;
+  --font-mono: 'SimSun','Consolas','Courier New',monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* 修复 Streamlit 默认 padding 和背景 */
+.stApp {background-color: var(--cream)}
 .block-container {padding: 0 !important; max-width: 100% !important}
 section.main > .block-container {padding-top: 0 !important}
+div[data-testid="stVerticalBlock"] {gap: 0 !important}
 
-/* Header 区域 */
+/* === 隐藏 Streamlit 原生元素 === */
+#MainMenu, footer, header[data-testid="stHeader"] {visibility: hidden}
+
+/* === PAGE BACKGROUND === */
+.stApp::before {content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(circle at 15% 20%, rgba(245,197,24,0.03) 0%, transparent 40%),
+             radial-gradient(circle at 85% 60%, rgba(184,22,22,0.02) 0%, transparent 40%),
+             radial-gradient(circle at 50% 90%, rgba(245,197,24,0.02) 0%, transparent 30%);
+}
+
+/* === MICRO ANIMATIONS === */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+
+/* === HEADER === */
 .flag-header {
-    background:#B81616; color:#fff; padding:18px 32px;
-    display:flex; align-items:center; justify-content:space-between;
-    border-bottom:2px solid rgba(245,197,24,.3);
-    margin: 0 0 24px 0;
+  background:var(--flag-red);color:var(--white);padding:20px 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;z-index:1;animation:fadeInDown .8s ease-out;
+  border-bottom:2px solid rgba(245,197,24,.3);
+  margin: 0 0 32px 0;
 }
+.flag-header .brand{display:flex;align-items:center;gap:12px}
 .flag-header h1 {
-    font-family:'SimSun','KaiTi','宋体',serif;
-    font-size:20px; font-weight:700; letter-spacing:.08em; color:#fff; margin:0;
+  font-family:var(--font-heading);font-size:18px;font-weight:700;letter-spacing:.08em;
+  color:var(--white);margin:0;
 }
-.flag-header .star {color:#F5C518; font-size:16px}
+.flag-header .stars {display:flex;gap:4px;font-size:14px;color:var(--gold);line-height:1}
 
-/* Footer */
-.flag-footer {
-    text-align:center; padding:28px; color:#1a3a2a;
-    font-family:'SimSun','KaiTi',serif; font-size:12px;
-    letter-spacing:.06em; border-top:1px solid rgba(184,22,22,.12);
-    margin:40px 0 0 0;
+/* === MAIN CONTENT WRAPPER === */
+.main-wrap {
+  max-width:860px;margin:0 auto;padding:0 24px;position:relative;z-index:1;
 }
-.flag-footer .star {color:#F5C518; font-size:10px; margin:0 6px}
 
-/* 首页卡片 */
+/* === HOME PAGE ENTRIES GRID === */
+.entries {
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+  max-width:760px;margin:56px auto 48px;
+  animation:fadeInUp .8s ease-out .15s both;
+}
+@media(max-width:640px){.entries{grid-template-columns:1fr}}
+
+/* === HOME CARD (matches server.py HOME_HTML) === */
 .home-card {
-    background:#fff; border:1px solid rgba(184,22,22,.08); border-left:3px solid #F5C518;
-    border-radius:8px; padding:32px 24px; text-align:center;
-    box-shadow:0 2px 12px rgba(0,0,0,.04);
-    transition:all .3s ease; cursor:pointer; display:block; text-decoration:none; color:inherit;
+  display:block;background:var(--white);border:1px solid rgba(184,22,22,.08);
+  border-left:3px solid var(--gold);border-radius:8px;padding:40px 28px;
+  text-align:center;text-decoration:none;color:inherit;cursor:pointer;
+  transition:all .3s ease;box-shadow:0 2px 12px rgba(0,0,0,.04);
+  position:relative;overflow:hidden;
 }
-.home-card:hover {border-left-color:#B81616;transform:translateY(-4px);box-shadow:0 8px 28px rgba(184,22,22,.1)}
-.home-card .icon {font-size:40px;margin-bottom:10px}
+.home-card:hover {border-left-color:var(--flag-red);transform:translateY(-4px);box-shadow:0 8px 28px rgba(184,22,22,.1)}
+.home-card .icon {font-size:42px;margin-bottom:14px;display:block;transition:transform .3s}
+.home-card:hover .icon {transform:scale(1.05)}
+.home-card .star-deco {display:inline-block;color:var(--gold);font-size:12px;margin:0 6px}
 .home-card h3 {
-    font-family:'SimSun','KaiTi',serif;font-size:18px;color:#0f2518;
-    margin:8px 0 10px;font-weight:700;letter-spacing:.05em;
+  font-family:var(--font-heading);font-size:18px;font-weight:700;color:var(--green-900);
+  margin-bottom:10px;letter-spacing:.06em;
 }
-.home-card p {font-size:14px;color:#5c4a3a;line-height:1.7;margin:0}
+.home-card p {font-size:13px;color:var(--ink-light);line-height:1.7}
+/* Gold line accent */
+.home-card::before {content:'';display:block;width:40px;height:2px;background:var(--gold);margin:0 auto 16px;transition:width .3s,background .3s}
+.home-card:hover::before {width:56px;background:var(--flag-red)}
 
-/* Streamlit 按钮重写 — 国旗红 */
-.stButton > button {
-    background-color: #B81616 !important;
-    color: #fff !important;
-    border: none !important;
-    font-weight: 700 !important;
-    font-family: 'SimSun','KaiTi',serif !important;
-    font-size: 14px !important;
-    letter-spacing: .05em !important;
-    border-radius: 6px !important;
-    padding: 8px 20px !important;
-    transition: all .2s !important;
+/* === FACULTY PAGE CARDS (matches server.py FACULTY_HTML) === */
+.fac-card {
+  background:var(--paper-card);border:1px solid rgba(184,22,22,.08);
+  border-left:3px solid var(--gold);padding:28px;margin-bottom:20px;
+  position:relative;animation:fadeInUp .7s ease-out both;box-shadow:0 2px 8px rgba(0,0,0,.03);
 }
-.stButton > button:hover {
-    background-color: #8E1010 !important;
-    box-shadow: 0 4px 12px rgba(184,22,22,.25) !important;
-}
-.stButton > button:disabled {
-    background-color: #D9A4A4 !important;
-    color: rgba(255,255,255,.7) !important;
+.fac-card:nth-child(1){animation-delay:.1s}
+.fac-card:nth-child(2){animation-delay:.2s}
+.fac-card h2 {
+  font-family:var(--font-heading);font-size:17px;display:flex;align-items:center;gap:10px;
+  margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid rgba(184,22,22,.15);
+  letter-spacing:.05em;color:var(--green-900);
 }
 
-/* 文件上传区域 - 柔和风格 */
-[data-testid="stFileUploader"] {
-    background: #fefcf8;
-    border: 2px dashed #ccc5b8;
-    border-radius: 8px;
-    padding: 20px;
-}
-[data-testid="stFileUploader"]:hover {border-color:#B81616; background: #fff}
-
-/* text_area / text_input - 柔和边框 */
-textarea, input[type="text"] {
-    font-family:'Microsoft YaHei',sans-serif !important;
-    font-size:14px !important;
-    border: 1px solid #d4cfc4 !important;
-    background: #fefcf8 !important;
-    color: #2c1810 !important;
-}
-textarea:focus, input[type="text"]:focus {
-    border-color: #B81616 !important;
-    box-shadow: 0 0 0 2px rgba(184,22,22,.1) !important;
+/* === BADGE (step numbers) === */
+.badge {
+  width:28px;height:28px;background:var(--flag-red);color:var(--white);
+  font-family:var(--font-heading);font-size:14px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
 }
 
-/* expander */
-[data-testid="stExpander"] {
-    background: transparent;
-    border: 1px solid #e8e0d8;
-    border-radius: 8px;
+/* === FORM LABELS === */
+label.block {
+  display:block;font-family:var(--font-heading);font-weight:600;
+  margin-bottom:6px;margin-top:14px;font-size:14px;
+  color:var(--green-900);letter-spacing:.04em;
+}
+label.block:first-child{margin-top:0}
+
+/* === TEXTAREAS === */
+textarea {
+  width:100%;height:130px;border:1px solid var(--ink-faint);padding:12px;
+  font:13px var(--font-mono);resize:vertical;background:var(--cream);
+  color:var(--ink);line-height:1.8;transition:border-color .2s;
+}
+textarea:focus {outline:none;border-color:var(--flag-red);box-shadow:0 0 0 2px rgba(184,22,22,.1)}
+textarea::placeholder {color:var(--ink-faint);font-style:italic}
+
+/* === UPLOAD ZONE === */
+.up {
+  border:2px solid var(--ink-faint);padding:32px;text-align:center;
+  cursor:pointer;transition:all .25s;background:var(--cream);position:relative;
+}
+.up::before {content:'';position:absolute;top:8px;left:8px;width:14px;height:14px;border-top:1px solid var(--flag-red);border-left:1px solid var(--flag-red);opacity:.3}
+.up::after {content:'';position:absolute;bottom:8px;right:8px;width:14px;height:14px;border-bottom:1px solid var(--flag-red);border-right:1px solid var(--flag-red);opacity:.3}
+.up:hover {border-color:var(--flag-red);background:var(--paper-card)}
+.up:hover::before,.up:hover::after {border-color:var(--flag-red);opacity:.7}
+
+/* === OR DIVIDER === */
+.or {
+  display:flex;align-items:center;gap:14px;margin:16px 0;
+}
+.or hr {flex:1;border:none;border-top:1px solid var(--ink-faint)}
+.or span {
+  font-family:var(--font-heading);color:var(--ink-faint);font-size:13px;
+  letter-spacing:.1em;position:relative;padding:0 8px;
+}
+.or span::before {content:'\2605';font-size:8px;position:absolute;left:-4px;top:50%;transform:translateY(-50%);color:var(--gold)}
+.or span::after {content:'\2605';font-size:8px;position:absolute;right:-4px;top:50%;transform:translateY(-50%);color:var(--gold)}
+
+/* === BUTTONS === */
+.btn {
+  width:100%;padding:14px;border:none;font-family:var(--font-heading);
+  font-size:16px;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .25s;
+}
+.btn-b {
+  background:var(--flag-red);color:var(--white);box-shadow:0 2px 6px rgba(184,22,22,.2);
+  border-radius:6px;
+}
+.btn-b:hover:not(:disabled) {background:var(--flag-red-dark);box-shadow:0 4px 12px rgba(184,22,22,.3);transform:translateY(-1px)}
+.btn-b:disabled {background:var(--flag-red-disabled);color:rgba(255,255,255,.6);cursor:not-allowed;box-shadow:none;transform:none}
+.btn-g {
+  background:var(--green-700);color:var(--gold);border:1px solid var(--gold);border-radius:6px;
+}
+.btn-g:hover:not(:disabled) {background:var(--green-500);transform:translateY(-1px)}
+.btn-g:disabled {background:var(--gray-300);color:var(--gray-500);border-color:var(--gray-300);cursor:not-allowed;transform:none}
+
+/* === SPINNER === */
+.spin {
+  width:22px;height:22px;border:2.5px solid rgba(245,197,24,.2);
+  border-top-color:var(--gold);border-radius:50%;animation:s .7s linear infinite;
+}
+@keyframes s{to{transform:rotate(360deg)}}
+
+/* === ROLES GRID === */
+.roles-grid {display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* === STATS GRID === */
+.stats {
+  display:grid;grid-template-columns:repeat(3,1fr);gap:0;
+  border:1px solid var(--ink-faint);margin:16px 0;
+}
+.st {
+  padding:20px 16px;text-align:center;border-right:1px solid var(--ink-faint);
+  background:var(--paper-card);position:relative;
+}
+.st:last-child{border-right:none}
+.st.c{border-top:3px solid var(--flag-red)}.st.r{border-top:3px solid var(--gold)}.st.p{border-top:3px solid var(--green-500)}
+.st b {
+  font-family:var(--font-heading);font-size:30px;font-weight:700;display:block;line-height:1.1;
+}
+.st.c b{color:var(--flag-red)}.st.r b{color:var(--gold)}.st.p b{color:var(--green-500)}
+.st span {
+  color:var(--ink-light);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
 }
 
-/* metric */
-[data-testid="stMetricValue"] {font-size:2rem !important;font-weight:700 !important}
+/* === RESULT TABLES === */
+table {
+  width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;
+  border:1px solid var(--ink-faint);
+}
+th {
+  background:var(--green-900);color:var(--gold-light);padding:8px 10px;text-align:center;
+  font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.05em;
+  text-transform:uppercase;border:1px solid rgba(245,197,24,.15);
+}
+td {padding:8px 10px;border:1px solid var(--ink-faint);text-align:center}
+tr:nth-child(even) td {background:var(--paper-warm)}
+.old {text-decoration:line-through;color:var(--ink-faint);font-size:12px}
+.hl {background:#fffde7;font-weight:600}
 
-/* dataframe 表格 */
-[data-testid="stDataFrame"] {font-size:13px}
-[data-testid="stDataFrame"] th {
-    background:#1a3a2a !important;color:#e0d0a0 !important;
-    font-family:'SimSun','KaiTi',serif !important;font-size:12px;
+/* === HINT / ERROR === */
+.hint {
+  display:block;background:#fffde7;border-left:3px solid var(--gold);
+  padding:10px 14px;margin-top:10px;font-size:13px;color:#6b5a20;
+}
+.err-msg {
+  display:block;background:#fdf0f2;border-left:3px solid var(--flag-red);
+  padding:12px 14px;color:var(--flag-red);margin-top:12px;font-size:13px;
 }
 
-/* 仓库网格样式 */
-:root {--flag-red:#B81616;--gold:#F5C518;--green-700:#1a3a2a;--green-500:#2d5a3f;
-       --cream:#F5F1E6;--white:#fff;--ink:#2c1810;--ink-light:#5c4a3a;--ink-faint:#9c8a7a;
-       --font-heading:'SimSun','KaiTi',serif;--font-body:'Microsoft YaHei',sans-serif}
+/* === SECTION TITLES === */
+.sect-title {
+  font-family:var(--font-heading);font-size:15px;font-weight:700;
+  margin:16px 0 6px;color:var(--green-900);letter-spacing:.05em;
+}
+
+/* === FOOTER === */
+.flag-footer {
+  text-align:center;padding:28px;font-family:var(--font-heading);
+  font-size:12px;color:var(--green-700);letter-spacing:.06em;
+  border-top:1px solid rgba(184,22,22,.08);margin:32px 0 0 0;
+}
+.flag-footer .star {color:var(--gold);font-size:10px;margin:0 6px}
+
+/* === WAREHOUSE GRID === */
 .section {margin-bottom:16px;background:var(--white);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.04);overflow:hidden;border:1px solid rgba(184,22,22,.06);border-left:3px solid var(--gold)}
 .section-header {padding:10px 16px;font-size:13px;font-weight:700;border-bottom:2px solid rgba(184,22,22,.08);display:flex;align-items:center;gap:10px;background:var(--white);font-family:var(--font-heading);letter-spacing:.04em;color:#0f2518}
 .section-header .tag {padding:4px 12px;border-radius:4px;color:var(--white);font-size:11px;font-weight:700}
@@ -848,16 +1007,87 @@ textarea:focus, input[type="text"]:focus {
 .cell.belt {background:#FCE4EC;border-color:#F8BBD0}.cell.belt .cc {color:#880E4F}
 .cell.uniform {background:#E3F2FD;border-color:#BBDEFB}.cell.uniform .cc {color:#0D47A1}
 .cab-label {font-size:11px;font-weight:700;padding:4px 12px;border-left:3px solid;margin:6px 0 2px;font-family:var(--font-heading);letter-spacing:.04em}
+
+/* === Streamlit 组件样式覆盖 === */
+.stButton > button {
+  background-color: var(--flag-red) !important;
+  color: var(--white) !important;
+  border: none !important;
+  font-weight: 700 !important;
+  font-family: var(--font-heading) !important;
+  font-size: 16px !important;
+  letter-spacing: .08em !important;
+  border-radius: 6px !important;
+  padding: 14px 20px !important;
+  transition: all .25s !important;
+  box-shadow: 0 2px 6px rgba(184,22,22,.2) !important;
+  width: auto !important;
+}
+.stButton > button:hover {
+  background-color: var(--flag-red-dark) !important;
+  box-shadow: 0 4px 12px rgba(184,22,22,.3) !important;
+  transform: translateY(-1px) !important;
+}
+.stButton > button:disabled {
+  background-color: var(--flag-red-disabled) !important;
+  color: rgba(255,255,255,.6) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+[data-testid="stFileUploader"] {
+  background: var(--cream) !important;
+  border: 2px dashed var(--ink-faint) !important;
+  border-radius: 0 !important;
+  padding: 32px !important;
+}
+[data-testid="stFileUploader"]:hover {
+  border-color: var(--flag-red) !important;
+  background: var(--paper-card) !important;
+}
+
+.stTextArea textarea {
+  font-family: var(--font-mono) !important;
+  font-size: 13px !important;
+  line-height: 1.8 !important;
+  height: 130px !important;
+  border: 1px solid var(--ink-faint) !important;
+  background: var(--cream) !important;
+  color: var(--ink) !important;
+}
+.stTextArea textarea:focus {
+  outline: none !important;
+  border-color: var(--flag-red) !important;
+  box-shadow: 0 0 0 2px rgba(184,22,22,.1) !important;
+}
+
+.stTextInput input {
+  border: 1px solid var(--ink-faint) !important;
+  background: var(--cream) !important;
+  color: var(--ink) !important;
+  font-family: var(--font-mono) !important;
+}
+.stTextInput input:focus {
+  border-color: var(--flag-red) !important;
+  box-shadow: 0 0 0 2px rgba(184,22,22,.1) !important;
+}
+
+[data-testid="stExpander"] {
+  background: transparent !important;
+  border: 1px solid var(--ink-faint) !important;
+  border-radius: 0 !important;
+}
 </style>
 
 <div class="flag-header">
-  <div style="display:flex;align-items:center;gap:12px">
-    <span class="star">&#9733;</span>
+  <div class="brand">
+    <div class="stars">&#9733;</div>
     <h1>浙江大学国旗仪仗队</h1>
   </div>
-  <span class="star">&#9733;</span>
+  <div class="stars">&#9733;</div>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 # ════════════════════════════════
@@ -865,20 +1095,14 @@ textarea:focus, input[type="text"]:focus {
 # ════════════════════════════════
 
 if st.session_state.page == 'home':
-    st.markdown("""
-    <style>
-    .entries-wrap {max-width:780px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:24px}
-    @media(max-width:640px){.entries-wrap{grid-template-columns:1fr}}
-    </style>
-    <div class="entries-wrap">
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="entries">', unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
         <div class="home-card">
           <div class="icon">&#127891;</div>
-          <h3>院系升旗礼服分配</h3>
+          <h3>院系升旗礼服分配 <span class="star-deco">&#9733;</span></h3>
           <p>上传库存表 + 拍照上传人员安排表<br>自动识别 → 按尺寸排序 → 冲突检测 → 下载分配表</p>
         </div>
         """, unsafe_allow_html=True)
@@ -914,27 +1138,21 @@ elif st.session_state.page == 'faculty':
         st.session_state._ocr_done = False
         st.session_state.page = 'home'; st.rerun()
 
-    st.markdown("---")
+    st.markdown('<div class="main-wrap">', unsafe_allow_html=True)
 
     # ====== 先放 OCR 逻辑（必须在 text_area 创建之前） ======
-    # 步骤①
+    # 步骤① — fac-card
     st.markdown("""
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <span style="width:28px;height:28px;background:#B81616;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'SimSun',serif;font-size:14px;flex-shrink:0">1</span>
-      <span style="font-family:'SimSun',serif;font-weight:700;font-size:16px;color:#0f2518">上传礼服库存表</span>
-    </div>
+    <div class="fac-card">
+    <h2><span class="badge">1</span> 上传礼服库存表 (.xlsx)</h2>
     """, unsafe_allow_html=True)
     excel_file = st.file_uploader("拖拽或点击上传 .xlsx 文件", type=['xlsx'], key="fac_excel", label_visibility="collapsed")
-
-    st.markdown("---")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # 步骤② 照片上传
     st.markdown("""
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <span style="width:28px;height:28px;background:#B81616;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'SimSun',serif;font-size:14px;flex-shrink:0">2</span>
-      <span style="font-family:'SimSun',serif;font-weight:700;font-size:16px;color:#0f2518">拍照上传人员安排表</span>
-      <span style="font-size:12px;color:#9c8a7a">（可选，AI 自动识别。有照片且名单为空时自动触发）</span>
-    </div>
+    <div class="fac-card">
+    <h2><span class="badge">2</span> 拍照上传人员安排表</h2>
     """, unsafe_allow_html=True)
     image_file = st.file_uploader("上传照片", type=['png','jpg','jpeg'], key="fac_img", label_visibility="collapsed")
 
@@ -948,14 +1166,10 @@ elif st.session_state.page == 'faculty':
             st.session_state._ocr_done = True
             st.rerun()
 
-    # ====== 然后是 text_area（OCR 已经写入 fac_roster 了） ======
-    # 步骤③ 名单
+    st.markdown('<div class="hint">⚠️ OCR识别结果已填入下方，请核对修正后再点生成</div>', unsafe_allow_html=True)
     st.markdown("""
-    <div style="display:flex;align-items:center;gap:10px;margin:20px 0 12px 0">
-      <span style="width:28px;height:28px;background:#B81616;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'SimSun',serif;font-size:14px;flex-shrink:0">3</span>
-      <span style="font-family:'SimSun',serif;font-weight:700;font-size:16px;color:#0f2518">输入或修正队列人员</span>
-      <span style="font-size:12px;color:#9c8a7a">（每行一人或顿号分隔）</span>
-    </div>
+    <div class="or"><hr><span>或手动输入 / 修正队列人员</span><hr></div>
+    <p style="color:var(--ink-light);font-size:13px;margin:8px 0">每行一人或顿号分隔。总负责、场控、后勤、摄影不参与分配。</p>
     """, unsafe_allow_html=True)
 
     roster = st.text_area("队列人员",
@@ -970,10 +1184,11 @@ elif st.session_state.page == 'faculty':
         m3_ = m3.text_input("后勤", key="fm3")
         m4_ = m4.text_input("摄影", key="fm4")
 
+    st.markdown('</div>', unsafe_allow_html=True)  # close fac-card
+
     # 生成按钮
     can_gen = excel_file is not None
-    btn_label = "\U0001F50D 预览排序 & 生成分配表"
-    clicked = st.button(btn_label, disabled=not can_gen, use_container_width=True)
+    clicked = st.button("🔍 预览排序 & 生成分配表", disabled=not can_gen, use_container_width=True)
 
     # —— 点击按钮：直接生成 ——
     if clicked:
@@ -1009,45 +1224,30 @@ elif st.session_state.page == 'faculty':
 
                     msg = f"生成完成: {len(faculty_persons)} 人, {len(conflicts)} 冲突, {len(reassigns)} 重分配"
                     if missing: msg += f"（{len(missing)} 人未在库存中找到：{', '.join(missing)}）"
-                    st.success(msg)
 
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("冲突数", len(conflicts))
-                    c2.metric("重分配", len(reassigns))
-                    c3.metric("受影响人数", len(set(r['person'] for r in reassigns)))
+                    affected = len(set(r['person'] for r in reassigns))
+                    type_names = {'uniform':'礼服','hat':'礼帽','boots':'马靴','belt':'腰带'}
 
-                    st.markdown("#### 排序后人员列表")
-                    import pandas as pd
-                    rows = []
-                    for i, p in enumerate(sorted_people):
-                        ch = changed.get(p['name'], {})
-                        rows.append({
-                            "序号": i+1, "姓名": p['name'],
-                            "性别": '女' if p['gender']=='F' else '男',
-                            "礼服": p.get('uniform',''),
-                            "礼帽": p.get('hat',''),
-                            "马靴": p.get('boots',''),
-                            "腰带": p.get('belt',''),
-                            "变更": '; '.join(f'{t}→{nv}' for t,nv in ch.items()) if ch else ''
-                        })
-                    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+                    # 使用与 Flask 版完全相同的 HTML 渲染结果
+                    st.markdown(f'''<div class="fac-card" style="animation:fadeInUp .5s ease-out">
+<h2><span class="badge">3</span> 生成结果</h2>
+<p style="color:var(--ink-light);margin-bottom:16px">{msg}</p>
 
-                    if conflicts:
-                        st.markdown("#### 冲突详情")
-                        type_names = {'uniform':'礼服','hat':'礼帽','boots':'马靴','belt':'腰带'}
-                        st.dataframe(pd.DataFrame([
-                            {"装备": type_names.get(c['item_type'],c['item_type']),
-                             "编号": c['item_code'], "需变动": c['person_to_move'],
-                             "保留": c['person_to_keep']} for c in conflicts
-                        ]), use_container_width=True, hide_index=True)
+<div class="stats">
+<div class="st c"><b>{len(conflicts)}</b><span>冲突数</span></div>
+<div class="st r"><b>{len(reassigns)}</b><span>重分配</span></div>
+<div class="st p"><b>{affected}</b><span>受影响人数</span></div>
+</div>
 
-                    if reassigns:
-                        st.markdown("#### 重分配方案")
-                        st.dataframe(pd.DataFrame([
-                            {"姓名": r['person'],
-                             "装备": type_names.get(r['item_type'],r['item_type']),
-                             "旧编号": r['old_item'], "新编号": r['new_item']} for r in reassigns
-                        ]), use_container_width=True, hide_index=True)
+<div class="sect-title">排序后人员列表</div>
+<table>
+<tr><th>序号</th><th>姓名</th><th>性别</th><th>礼服</th><th>礼帽</th><th>马靴</th><th>腰带</th></tr>
+{make_person_rows(sorted_people, changed)}
+</table>
+{make_conflicts_html(conflicts, type_names)}
+{make_reassigns_html(reassigns, type_names)}
+</div>
+''', unsafe_allow_html=True)
 
                     st.download_button("📥 下载礼服分配表 (.xlsx)",
                                       data=base64.b64decode(b64),
