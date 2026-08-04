@@ -1186,7 +1186,7 @@ elif st.session_state.page == 'faculty':
     if back_home:
         st.session_state.fac_roster = ''
         st.session_state.fac_img = None
-        st.session_state._ocr_done = False
+        st.session_state._ocr_tag = ''
         st.session_state.page = 'home'; st.rerun()
 
     st.markdown('<div class="main-wrap">', unsafe_allow_html=True)
@@ -1209,12 +1209,13 @@ elif st.session_state.page == 'faculty':
 
     # —— OCR 自动触发（必须在 text_area 创建前） ——
     if excel_file is not None and image_file is not None:
-        if not st.session_state.get('_ocr_done', False):
+        # 用文件名+大小作为指纹，文件变了就重新 OCR
+        file_tag = f"{excel_file.name}:{excel_file.size}|{image_file.name}:{image_file.size}"
+        if st.session_state.get('_ocr_tag', '') != file_tag:
             with st.spinner("AI 正在识别照片中的人员名单..."):
                 ocr_text, ocr_roles = ocr_faculty_roster(image_file.getvalue(), excel_file.getvalue())
-            # 无论有没有结果都写入 session_state，避免重复触发
             st.session_state.fac_roster = ocr_text if ocr_text else ''
-            st.session_state._ocr_done = True
+            st.session_state._ocr_tag = file_tag
             st.rerun()
 
     st.markdown('<div class="or"><hr><span>或手动输入 / 修正队列人员</span><hr></div>', unsafe_allow_html=True)
