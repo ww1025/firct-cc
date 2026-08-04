@@ -438,7 +438,7 @@ def resolve_faculty_conflicts(conflicts, persons, pool):
             person[t] = alt
     return reassigns, changed
 
-FACULTY_TEMPLATE = r'C:\Users\夏瑞泽\xwechat_files\wxid_vnl456wm0r9h12_0c22\msg\file\2026-07\26.4.27管理学院院系升旗装备分配表.xlsx'
+FACULTY_TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'faculty_template.xlsx')
 
 def generate_faculty_excel(persons, changed):
     """基于模板修改数据，不自己设计样式。
@@ -730,24 +730,13 @@ function show(d){
     ['uniform','hat','boots','belt'].forEach(function(k){
       var v = p[k]||'';
       var cls = ch[k] ? 'hl' : '';
-      var oldv = ch[k] ? '<br><span class=old>'+d.original_equip[p.name+'|'+k]+'→</span>' : '';
-      h+='<td class='+cls+'>'+v+oldv+'</td>';
+      h+='<td class='+cls+'>'+v+'</td>';
     });
     h+='</tr>';
   });
   h+='</table>';
   document.getElementById('pt').innerHTML=h;
-  if(d.conflicts.length){
-    h='<h3>冲突详情</h3><table><tr><th>装备类型</th><th>编号</th><th>需变动</th><th>保留</th></tr>';
-    d.conflicts.forEach(function(c){h+='<tr><td>'+c.item_type+'</td><td>'+c.item_code+'</td><td>'+c.person_to_move+'</td><td>'+c.person_to_keep+'</td></tr>'});
-    h+='</table>';
-  }
-  if(d.reassignments.length){
-    h='<h3>重分配方案</h3><table><tr><th>姓名</th><th>装备</th><th>旧编号</th><th>新编号</th></tr>';
-    d.reassignments.forEach(function(r){h+='<tr><td>'+r.person+'</td><td>'+r.item_type+'</td><td class=old>'+r.old_item+'</td><td class=hl>'+r.new_item+'</td></tr>'});
-    h+='</table>';
-  }
-  document.getElementById('rt').innerHTML=h;
+  document.getElementById('rt').innerHTML='';
   document.getElementById('res').scrollIntoView({behavior:'smooth'});
 }
 </script>

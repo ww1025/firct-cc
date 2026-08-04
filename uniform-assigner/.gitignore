@@ -1,6 +1,12 @@
-﻿schedule_photo.jpg
-schedule_photo_large.png
-server_log.txt
-test_ocr.png
 __pycache__/
+*.pyc
+temp/
+*.jpg
+*.png
+*.jsonl
+debug_*.xlsx
+test_*.xlsx
+verify_*.xlsx
+本月礼服分配.xlsx
+server_log.txt
 server_out.txt
