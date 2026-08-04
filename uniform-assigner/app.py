@@ -708,16 +708,15 @@ SHIRT_SET = {
 }
 
 def _wh_build_boot_cell(cell):
-    """Generate one boot cell HTML with inline onclick"""
+    """Generate one boot cell HTML — data attributes only, JS event delegation handles click"""
     code = _wh_escape(str(cell.get('code', '')))
     person = str(cell.get('person', ''))
     nm = _wh_fmt_name(person)
     psn = _wh_escape(person)
-    onclick = f"onclick=\"wh_openBoot('{code}','{psn}')\""
     inner = f'<span class="cc">{code}</span>'
     if nm:
         inner += f'<span class="cn">{_wh_escape(nm)}</span>'
-    return f'<div class="cell boot" data-code="{code}" {onclick}>{inner}</div>'
+    return f'<div class="cell boot" data-code="{code}" data-person="{psn}" data-type="boot">{inner}</div>'
 
 def _wh_render_boots(data):
     """Render the boots (grid) section"""
@@ -749,7 +748,7 @@ def _wh_render_boots(data):
     return h
 
 def _wh_belt_cell(item):
-    """Generate one belt cell HTML with inline onclick"""
+    """Generate one belt cell HTML — data attributes only, JS event delegation handles click"""
     code = _wh_escape(str(item.get('code', '')))
     person = str(item.get('person', ''))
     nm = _wh_fmt_name(person)
@@ -757,14 +756,13 @@ def _wh_belt_cell(item):
     uniform_size = _wh_escape(str(item.get('uniform_size', '')))
     gender = '女款' if code.startswith('F') else '男款'
     psn = _wh_escape(person)
-    onclick = f"onclick=\"wh_openBelt('{code}','{gender}','{cabinet}','{uniform_size}','{psn}')\""
     inner = f'<span class="cc">{code}</span>'
     if nm:
         inner += f'<span class="cn">{_wh_escape(nm)}</span>'
-    return f'<div class="cell belt" data-code="{code}" {onclick}>{inner}</div>'
+    return f'<div class="cell belt" data-code="{code}" data-person="{psn}" data-type="belt" data-gender="{gender}" data-cabinet="{cabinet}" data-uniform="{uniform_size}">{inner}</div>'
 
 def _wh_uniform_cell(item):
-    """Generate one uniform cell HTML with inline onclick"""
+    """Generate one uniform cell HTML — data attributes only, JS event delegation handles click"""
     code = _wh_escape(str(item.get('code', '')))
     person = str(item.get('person', ''))
     nm = _wh_fmt_name(person)
@@ -772,13 +770,12 @@ def _wh_uniform_cell(item):
     belt = _wh_escape(str(item.get('belt', '')))
     has_shirt = '1' if code in SHIRT_SET else '0'
     psn = _wh_escape(person)
-    onclick = f"onclick=\"wh_openUni('{code}','{cabinet}','{belt}','{psn}','{has_shirt}')\""
     inner = f'<span class="cc">{code}</span>'
     if nm:
         inner += f'<span class="cn">{_wh_escape(nm)}</span>'
     if has_shirt == '1':
         inner += '<span class="ct" style="background:#4CAF50">衬衫</span>'
-    return f'<div class="cell uniform" data-code="{code}" {onclick}>{inner}</div>'
+    return f'<div class="cell uniform" data-code="{code}" data-person="{psn}" data-type="uniform" data-cabinet="{cabinet}" data-belt="{belt}" data-has-shirt="{has_shirt}">{inner}</div>'
 
 def _wh_render_section(items, item_type, title, color):
     """Render a belts or uniforms section with cabinet grouping"""
@@ -877,26 +874,28 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f0ec;c
 <script>
 function wh_open(title,body){document.getElementById('pt').innerHTML=title;document.getElementById('pb').innerHTML=body;document.getElementById('pn').classList.add('show');document.getElementById('ov').classList.add('show')}
 function wh_close(){document.getElementById('pn').classList.remove('show');document.getElementById('ov').classList.remove('show')}
-function wh_openBoot(code,person){
-  wh_open('🥾 马靴 '+code,'📍 库位：<strong>'+code+'</strong><br>👤 '+(person||'未分配'))
-}
-function wh_openBelt(code,gender,cabinet,uniform_size,person){
-  wh_open('🎽 腰带 '+code,gender+' · '+cabinet+'<br>👔 礼服尺码：<strong>'+uniform_size+'</strong><br>👤 <strong>'+(person||'未分配')+'</strong>')
-}
-function wh_openUni(code,cabinet,belt,person,hasShirt){
-  var st=hasShirt==='1'?' <span style="background:#4CAF50;color:#fff;padding:1px 6px;border-radius:3px;font-size:.65rem">有配套衬衫</span>':'';
-  wh_open('👔 礼服 '+code+st,'🏷️ '+cabinet+'<br>🎽 腰带：<strong>'+belt+'</strong><br>👤 <strong>'+(person||'未分配')+'</strong>')
-}
-// Simple search
+
+// Event delegation - no inline onclick (CSP-safe)
+document.querySelector('.main').addEventListener('click',function(e){
+  var el=e.target.closest('.cell[data-type]');
+  if(!el)return;
+  var t=el.dataset,code=t.code||'',person=t.person||'',cab=t.cabinet||'',belt=t.belt||'';
+  if(t.type==='boot'){
+    wh_open('🥾 马靴 '+code,'📍 库位：<strong>'+code+'</strong><br>👤 '+(person||'未分配'));
+  }else if(t.type==='belt'){
+    var g=t.gender||'';
+    wh_open('🎽 腰带 '+code,g+' · '+cab+'<br>👔 礼服尺码：<strong>'+(t.uniform||'')+'</strong><br>👤 <strong>'+(person||'未分配')+'</strong>');
+  }else if(t.type==='uniform'){
+    var st=t.hasShirt==='1'?' <span style="background:#4CAF50;color:#fff;padding:1px 6px;border-radius:3px;font-size:.65rem">有配套衬衫</span>':'';
+    wh_open('👔 礼服 '+code+st,'🏷️ '+cab+'<br>🎽 腰带：<strong>'+belt+'</strong><br>👤 <strong>'+(person||'未分配')+'</strong>');
+  }
+});
+
+// Search index
 (function(){
 var ALL=[];
-var cells=document.querySelectorAll('.cell[data-code]');
-cells.forEach(function(el){
-  var code=el.getAttribute('data-code'),type='';
-  if(el.classList.contains('boot'))type='🥾';
-  else if(el.classList.contains('belt'))type='🎽';
-  else type='👔';
-  ALL.push({el:el,type:type,code:code});
+document.querySelectorAll('.cell[data-code]').forEach(function(el){
+  ALL.push({el:el,type:el.dataset.type||'',code:el.dataset.code||'',person:el.dataset.person||''});
 });
 window.wh_si=function(){
   var q=document.getElementById('q').value.trim(),s=document.getElementById('sug');
@@ -904,7 +903,7 @@ window.wh_si=function(){
   var ql=q.toLowerCase();
   var ms=ALL.filter(function(a){return a.code.toLowerCase().indexOf(ql)>=0||(a.person&&a.person.indexOf(q)>=0)}).slice(0,6);
   if(!ms.length){s.style.display='none';return}
-  s.innerHTML=ms.map(function(m){return '<div class="item">'+m.type+' '+m.code+'</div>'}).join('');
+  s.innerHTML=ms.map(function(m){var icon=m.type==='boot'?'🥾':m.type==='belt'?'🎽':'👔';return '<div class="item">'+icon+' '+m.code+'</div>'}).join('');
   s.style.display='block';
 };
 window.wh_ds=function(){
