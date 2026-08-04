@@ -844,7 +844,7 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f0ec;c
 .cell.belt{background:#FCE4EC;border-color:#F8BBD0}.cell.belt .cc{color:#880E4F}
 .cell.uniform{background:#E3F2FD;border-color:#BBDEFB}.cell.uniform .cc{color:#0D47A1}
 @keyframes glow{0%,100%{box-shadow:0 0 0 2px #ff5722}50%{box-shadow:0 0 0 5px #ff5722,0 0 16px rgba(255,87,34,.4)}}
-.panel{position:fixed;top:0;left:0;right:0;background:#fff;border-radius:0 0 12px 12px;box-shadow:0 4px 20px rgba(0,0,0,.15);padding:16px;z-index:60;max-height:50vh;overflow-y:auto;display:none;border-bottom:3px solid #8B0000}
+.panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.25);padding:16px;z-index:60;max-height:60vh;max-width:90vw;width:320px;overflow-y:auto;display:none;border-top:3px solid #8B0000}
 .panel.show{display:block}
 .panel .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .panel .ph h3{font-size:.85rem;color:#8B0000}
