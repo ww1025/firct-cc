@@ -725,7 +725,7 @@ def render_warehouse():
                 cell = row[ci] if ci < len(row) else None
                 if cell and cell.get('code'):
                     nm = cell.get('person', '')
-                    h.append('<div class="cell boot" onclick="showDetail(\'boot\',\'{}\',\'{}\')"><span class="cc">{}</span>'.format(cell['code'], nm, cell['code']))
+                    h.append('<div class="cell boot" data-type="boot" data-code="{}"><span class="cc">{}</span>'.format(cell['code'], cell['code']))
                     if nm: h.append('<span class="cn">{}</span>'.format(nm))
                     h.append('</div>')
                 else:
@@ -744,7 +744,7 @@ def render_warehouse():
         h.append('<div class="grid-table" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))">')
         for item in grp:
             nm = item.get('person', '')
-            h.append('<div class="cell belt" onclick="showDetail(\'belt\',\'{}\',\'{}\')"><span class="cc">{}</span>'.format(item['code'], nm, item['code']))
+            h.append('<div class="cell belt" data-type="belt" data-code="{}"><span class="cc">{}</span>'.format(item['code'], item['code']))
             if nm: h.append('<span class="cn">{}</span>'.format(nm))
             h.append('</div>')
         h.append('</div>')
@@ -760,7 +760,7 @@ def render_warehouse():
         for item in grp:
             nm = item.get('person', '')
             st = '<span class="ct" style="background:var(--green-500)">衬衫</span>' if item['code'] in SHIRT_SET else ''
-            h.append('<div class="cell uniform" onclick="showDetail(\'uniform\',\'{}\',\'{}\')"><span class="cc">{}</span>'.format(item['code'], nm, item['code']))
+            h.append('<div class="cell uniform" data-type="uniform" data-code="{}"><span class="cc">{}</span>'.format(item['code'], item['code']))
             if nm: h.append('<span class="cn">{}</span>'.format(nm))
             if st: h.append(st)
             h.append('</div>')
@@ -1034,6 +1034,20 @@ tr:nth-child(even) td {background:var(--paper-warm)}
 .cell.belt {background:#FCE4EC;border-color:#F8BBD0}.cell.belt .cc {color:#880E4F}
 .cell.uniform {background:#E3F2FD;border-color:#BBDEFB}.cell.uniform .cc {color:#0D47A1}
 .cab-label {font-size:11px;font-weight:700;padding:4px 12px;border-left:3px solid;margin:6px 0 2px;font-family:var(--font-heading);letter-spacing:.04em}
+
+/* === WAREHOUSE PANEL & OVERLAY === */
+.panel {position:fixed;bottom:0;left:0;right:0;background:var(--white);border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:20px;z-index:60;max-height:50vh;overflow-y:auto;display:none;border-top:3px solid var(--flag-red)}
+.panel.show {display:block}
+.panel .ph {display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.panel .ph h3 {font-size:15px;color:var(--flag-red);font-family:var(--font-heading)}
+.panel .pc {font-size:13px;line-height:2.2;color:var(--ink-light)}
+.panel .pc strong {color:var(--ink)}
+.panel .close {font-size:18px;color:var(--ink-faint);cursor:pointer;padding:4px 10px;background:none;border:none;border-radius:4px}
+.panel .close:hover {color:var(--flag-red)}
+.overlay {position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);z-index:55;display:none}
+.overlay.show {display:block}
+.cell.hl {border-color:var(--flag-red)!important;box-shadow:0 0 0 2px var(--flag-red),0 0 12px rgba(184,22,22,.3)!important;z-index:10;animation:glow .8s ease infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 2px var(--flag-red)}50%{box-shadow:0 0 0 5px var(--flag-red),0 0 16px rgba(184,22,22,.4)}}
 
 /* === Streamlit 组件样式覆盖 === */
 .stButton > button {
@@ -1324,3 +1338,39 @@ elif st.session_state.page == 'warehouse':
     # 渲染仓库
     wh_html = render_warehouse()
     st.markdown(wh_html, unsafe_allow_html=True)
+
+    # 详情面板 + 交互 JS
+    st.markdown(f"""
+    <div class="overlay" id="wh_overlay" onclick="wh_closePanel()"></div>
+    <div class="panel" id="wh_panel"><div class="ph"><h3 id="wh_pt"></h3><button class="close" onclick="wh_closePanel()">✕</button></div><div class="pc" id="wh_pb"></div></div>
+    <script>
+    var WH_DATA = {warehouse_data_json()};
+    var WH_SHIRT = {{'F165/80-01':1,'F165/80-02':1,'F165/84-02':1,'F165/88-01':1,'F165/88-02':1,'F165/88-03':1,'F165/88-04':1,'M180/92-05':1,'M175/96-02':1,'F170/84-01':1,'F170/84-02':1,'F170/84-03':1,'F170/84-06':1,'F170/88-01':1,'F170/88-02':1,'F170/92-01':1}};
+    var WH_CM = {{}};
+    function wh_init() {{
+        document.querySelectorAll('.cell[data-type]').forEach(function(el){{
+            var t=el.getAttribute('data-type'), c=el.getAttribute('data-code');
+            WH_CM[t+'_'+c]=el;
+            el.addEventListener('click',function(e){{wh_showDetail(t,c,el)}});
+        }});
+    }}
+    function wh_showDetail(t,c,el) {{
+        wh_clearHL(); el.classList.add('hl');
+        if(t==='boot'){{
+            var found=null; WH_DATA.grid.forEach(function(r){{r.forEach(function(cell){{if(cell&&cell.code===c)found=cell;}})}});
+            wh_openPanel('🥾 马靴 '+c,'📍 库位：<strong>'+c+'</strong><br>👤 '+(found&&found.person?found.person:'未分配'));
+        }}else if(t==='belt'){{
+            var b=WH_DATA.belts.find(function(x){{return x.code===c}});
+            if(b)wh_openPanel('🎽 腰带 '+c,(c.indexOf('F')===0?'女款':'男款')+' · '+b.cabinet+'<br>👔 礼服尺码：<strong>'+(b.uniform_size||'-')+'</strong><br>👤 <strong>'+(b.person||'未分配')+'</strong>');
+        }}else{{
+            var u=WH_DATA.uniforms.find(function(x){{return x.code===c}});
+            if(u){{var st2=WH_SHIRT[c]?' <span style="background:var(--green-500);color:var(--white);padding:1px 6px;border-radius:3px;font-size:11px">有配套衬衫</span>':'';
+            wh_openPanel('👔 礼服 '+c+st2,'🏷️ '+u.cabinet+'<br>🎽 腰带：<strong>'+(u.belt||'-')+'</strong><br>👤 <strong>'+(u.person||'未分配')+'</strong>');}}
+        }}
+    }}
+    function wh_openPanel(title,body){{document.getElementById('wh_pt').innerHTML=title;document.getElementById('wh_pb').innerHTML=body;document.getElementById('wh_panel').classList.add('show');document.getElementById('wh_overlay').classList.add('show')}}
+    function wh_closePanel(){{document.getElementById('wh_panel').classList.remove('show');document.getElementById('wh_overlay').classList.remove('show')}}
+    function wh_clearHL(){{for(var k in WH_CM)WH_CM[k].classList.remove('hl')}}
+    wh_init();
+    </script>
+    """, unsafe_allow_html=True)
