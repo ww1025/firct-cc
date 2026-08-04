@@ -690,166 +690,14 @@ def make_person_rows(sorted_people, changed):
 
 
 def render_warehouse_full():
-    """返回完整自包含 HTML 页面，JavaScript 交互在 iframe 中运行"""
-    import json
-    data = json.loads(warehouse_data_json())
-    grid = data['grid']
-    belts = data['belts']
-    uniforms = data['uniforms']
-
-    SHIRT_SET = {'F165/80-01','F165/80-02','F165/84-02','F165/88-01','F165/88-02','F165/88-03','F165/88-04','M180/92-05','M175/96-02','F170/84-01','F170/84-02','F170/84-03','F170/84-06','F170/88-01','F170/88-02','F170/92-01'}
-
-    h = []
-    h.append('''<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-    <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#F5F1E6;color:#2c1810;min-height:100vh;font-size:14px}
-    :root{--flag-red:#B81616;--gold:#F5C518;--green-700:#1a3a2a;--green-500:#2d5a3f;--ink:#2c1810;--ink-light:#5c4a3a;--ink-faint:#9c8a7a;--white:#fff;--font-heading:'SimSun','KaiTi','Microsoft YaHei',serif}
-    .section{margin-bottom:12px;background:var(--white);border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.04);overflow:hidden;border:1px solid rgba(184,22,22,.06);border-left:3px solid var(--gold)}
-    .section-header{padding:10px 16px;font-size:13px;font-weight:700;border-bottom:2px solid rgba(184,22,22,.08);display:flex;align-items:center;gap:10px;background:var(--white);font-family:var(--font-heading);color:#0f2518}
-    .section-header .tag{padding:4px 12px;border-radius:4px;color:var(--white);font-size:11px;font-weight:700}
-    .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:4px}
-    .grid-table{display:grid;gap:2px;padding:2px}
-    .cell{border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 8px;min-width:72px;min-height:52px;cursor:pointer;transition:all .15s;text-align:center;border:1px solid transparent}
-    .cell:active{transform:scale(.95)}
-    .cell .cc{font-weight:700;font-size:11px;margin-bottom:2px}
-    .cell .cn{font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-light)}
-    .cell .ct{font-size:9px;color:var(--white);padding:1px 5px;border-radius:3px;margin-top:2px}
-    .cell.gh{min-width:auto;min-height:24px;padding:2px 4px;font-size:11px}
-    .cell.gh:active{transform:none}
-    .cell.empty{background:#fafaf7;border-color:#e8e0d8;cursor:default}
-    .cell.empty:active{transform:none}
-    .cell.boot{background:#FFF3E0;border-color:#FFE0B2}.cell.boot .cc{color:#BF360C}
-    .cell.belt{background:#FCE4EC;border-color:#F8BBD0}.cell.belt .cc{color:#880E4F}
-    .cell.uniform{background:#E3F2FD;border-color:#BBDEFB}.cell.uniform .cc{color:#0D47A1}
-    .cell.hl{border-color:var(--flag-red)!important;box-shadow:0 0 0 2px var(--flag-red),0 0 12px rgba(184,22,22,.3)!important;z-index:10;animation:glow .8s ease infinite}
-    @keyframes glow{0%,100%{box-shadow:0 0 0 2px var(--flag-red)}50%{box-shadow:0 0 0 5px var(--flag-red),0 0 16px rgba(184,22,22,.4)}}
-    .cab-label{font-size:11px;font-weight:700;padding:4px 12px;border-left:3px solid;margin:6px 0 2px;font-family:var(--font-heading)}
-    .panel{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:20px;z-index:60;max-height:50vh;overflow-y:auto;display:none;border-top:3px solid var(--flag-red)}
-    .panel.show{display:block}
-    .panel .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-    .panel .ph h3{font-size:15px;color:var(--flag-red);font-family:var(--font-heading)}
-    .panel .pc{font-size:13px;line-height:2.2;color:var(--ink-light)}
-    .panel .pc strong{color:var(--ink)}
-    .panel .close{font-size:18px;color:var(--ink-faint);cursor:pointer;padding:4px 10px;background:none;border:none;border-radius:4px}
-    .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);z-index:55;display:none}
-    .overlay.show{display:block}
-    .tip{text-align:center;color:var(--ink-faint);font-size:11px;padding:8px}
-    </style></head><body>''')
-
-    # ── 马靴区域 ──
-    flat = []
-    for r in grid:
-        for c in r:
-            if c and c.get('code'): flat.append(c)
-
-    cg = [(1,4),(2,4),(3,3),(4,3)]
-    rg = [('A',2),('B',4),('C',5)]
-
-    h.append('<div class="section"><div class="section-header"><span class="tag" style="background:#E65100">🥾</span>马靴 · {}库位</div>'.format(len(flat)))
-    h.append('<div class="table-wrap"><div class="grid-table" style="grid-template-columns:28px repeat(14,minmax(64px,1fr))">')
-    h.append('<div class="cell gh" style="background:#fafafa"></div>')
-    for gn, gc in cg:
-        h.append('<div class="cell gh" style="grid-column:span {};background:#FFE0B2;color:#BF360C;font-weight:700">{}</div>'.format(gc, gn))
-
-    ri = 0
-    for rn, rr in rg:
-        for lri, row in enumerate(grid[ri:ri+rr]):
-            if lri == 0:
-                h.append('<div class="cell gh" style="grid-row:span {};writing-mode:vertical-lr;background:#FFE0B2;color:#BF360C;font-weight:700">{}</div>'.format(rr, rn))
-            for ci in range(14):
-                cell = row[ci] if ci < len(row) else None
-                if cell and cell.get('code'):
-                    nm = cell.get('person', '')
-                    h.append('<div class="cell boot" data-type="boot" data-code="{}"><span class="cc">{}</span>'.format(cell['code'], cell['code']))
-                    if nm: h.append('<span class="cn">{}</span>'.format(nm))
-                    h.append('</div>')
-                else:
-                    h.append('<div class="cell empty"></div>')
-        ri += rr
-    h.append('</div></div></div>')
-
-    # ── 腰带区域 ──
-    h.append('<div class="section"><div class="section-header"><span class="tag" style="background:#C62828">🎽</span>腰带 · {}项</div><div class="table-wrap">'.format(len(belts)))
-    cabs = ['一柜','二柜','三柜','四柜','五柜','六柜']
-    ccl = ['#E65100','#FF8F00','#F9A825','#FFB300','#FFC107','#FFCA28']
-    for ci, cab in enumerate(cabs):
-        grp = [b for b in belts if b['cabinet'] == cab]
-        if not grp: continue
-        h.append('<div class="cab-label" style="color:{};border-color:{}">{} · {}项</div>'.format(ccl[ci], ccl[ci], cab, len(grp)))
-        h.append('<div class="grid-table" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))">')
-        for item in grp:
-            nm = item.get('person', '')
-            h.append('<div class="cell belt" data-type="belt" data-code="{}"><span class="cc">{}</span>'.format(item['code'], item['code']))
-            if nm: h.append('<span class="cn">{}</span>'.format(nm))
-            h.append('</div>')
-        h.append('</div>')
-    h.append('</div></div>')
-
-    # ── 礼服区域 ──
-    h.append('<div class="section"><div class="section-header"><span class="tag" style="background:#1565C0">👔</span>礼服 · {}项</div><div class="table-wrap">'.format(len(uniforms)))
-    for ci, cab in enumerate(cabs):
-        grp = [u for u in uniforms if u['cabinet'] == cab]
-        if not grp: continue
-        h.append('<div class="cab-label" style="color:{};border-color:{}">{} · {}项</div>'.format(ccl[ci], ccl[ci], cab, len(grp)))
-        h.append('<div class="grid-table" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))">')
-        for item in grp:
-            nm = item.get('person', '')
-            st = '<span class="ct" style="background:var(--green-500)">衬衫</span>' if item['code'] in SHIRT_SET else ''
-            h.append('<div class="cell uniform" data-type="uniform" data-code="{}"><span class="cc">{}</span>'.format(item['code'], item['code']))
-            if nm: h.append('<span class="cn">{}</span>'.format(nm))
-            if st: h.append(st)
-            h.append('</div>')
-        h.append('</div>')
-    h.append('</div></div>')
-
-    h.append('<div class="tip">点击格子查看详情 | 左右滑动表格</div>')
-
-    # ── 详情面板 + overlay ──
-    h.append('<div class="overlay" id="ov" onclick="closePanel()"></div>')
-    h.append('<div class="panel" id="pn"><div class="ph"><h3 id="pt"></h3><button class="close" onclick="closePanel()">✕</button></div><div class="pc" id="pb"></div></div>')
-
-    # ── JS 交互 ──
-    h.append('''<script>
-    var D = ''' + warehouse_data_json() + ''';
-    var SHIRT_SET = {'F165/80-01':1,'F165/80-02':1,'F165/84-02':1,'F165/88-01':1,'F165/88-02':1,'F165/88-03':1,'F165/88-04':1,'M180/92-05':1,'M175/96-02':1,'F170/84-01':1,'F170/84-02':1,'F170/84-03':1,'F170/84-06':1,'F170/88-01':1,'F170/88-02':1,'F170/92-01':1};
-    var CM = {};
-    document.querySelectorAll('.cell[data-type]').forEach(function(el){
-        var t = el.getAttribute('data-type'), c = el.getAttribute('data-code');
-        CM[t+'_'+c] = el;
-        el.addEventListener('click', function(){
-            clearHL(); el.classList.add('hl');
-            if(t==='boot'){
-                var found = null;
-                D.grid.forEach(function(r){ r.forEach(function(cell){ if(cell&&cell.code===c) found = cell; }); });
-                openPanel('🥾 马靴 '+c, '📍 库位：<strong>'+c+'</strong><br>👤 '+(found&&found.person?found.person:'未分配'));
-            } else if(t==='belt'){
-                var b = D.belts.find(function(x){ return x.code===c; });
-                if(b) openPanel('🎽 腰带 '+c, (c.indexOf('F')===0?'女款':'男款')+' · '+b.cabinet+'<br>👔 礼服尺码：<strong>'+(b.uniform_size||'-')+'</strong><br>👤 <strong>'+(b.person||'未分配')+'</strong>');
-            } else {
-                var u = D.uniforms.find(function(x){ return x.code===c; });
-                if(u){
-                    var st2 = SHIRT_SET[c] ? ' <span style="background:#2d5a3f;color:#fff;padding:1px 6px;border-radius:3px;font-size:11px">有配套衬衫</span>' : '';
-                    openPanel('👔 礼服 '+c+st2, '🏷️ '+u.cabinet+'<br>🎽 腰带：<strong>'+(u.belt||'-')+'</strong><br>👤 <strong>'+(u.person||'未分配')+'</strong>');
-                }
-            }
-        });
-    });
-    function openPanel(title, body){
-        document.getElementById('pt').innerHTML = title;
-        document.getElementById('pb').innerHTML = body;
-        document.getElementById('pn').classList.add('show');
-        document.getElementById('ov').classList.add('show');
-    }
-    function closePanel(){
-        document.getElementById('pn').classList.remove('show');
-        document.getElementById('ov').classList.remove('show');
-    }
-    function clearHL(){ for(var k in CM) CM[k].classList.remove('hl'); }
-    </script></body></html>''')
-
-    return '\n'.join(h)
+    """用原始 warehouse-map-mobile.html 模板，只注入数据——保证 100% 一致"""
+    import os
+    template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'warehouse-map-mobile.html')
+    with open(template_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    # 替换 var D = {...}; 注入最新数据
+    import re
+    return re.sub(r'var D = \{.*?\};', 'var D = ' + warehouse_data_json() + ';', html, count=1, flags=re.DOTALL)
 
 
 # ═══════════════════════════════════════
@@ -1419,4 +1267,4 @@ elif st.session_state.page == 'warehouse':
 
     # 用 st.components.v1.html 才能跑 JS（st.markdown 会过滤 script）
     wh_full = render_warehouse_full()
-    st.components.v1.html(wh_full, height=2200, scrolling=True)
+    st.components.v1.html(wh_full, height=2600, scrolling=True)

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>物资仓库 — 国旗仪仗队</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f0ec;color:#333;min-height:100vh;font-size:14px}
+.header{background:linear-gradient(135deg,#8B0000,#B71C1C);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:50}
+.header h1{font-size:1rem;font-weight:700}.header .sub{font-size:.65rem;opacity:.85}
+.search-row{display:flex;gap:6px;margin-top:8px;position:relative}
+.search-row input{flex:1;padding:10px 12px;border:none;border-radius:8px;font-size:.85rem;outline:none;background:#fff;min-width:0}
+.search-row button{padding:10px 16px;border:none;border-radius:8px;background:#E65100;color:#fff;font-weight:700;cursor:pointer;font-size:.85rem;white-space:nowrap}
+.suggestions{position:absolute;top:44px;left:0;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:100;max-height:180px;overflow-y:auto;display:none;font-size:.8rem}
+.suggestions .item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0ece8}
+.suggestions .item:hover{background:#FFF3E0}
+.main{padding:8px}
+.section{margin-bottom:12px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden;border:1px solid #e8e0d8}
+.section-header{padding:8px 14px;font-size:.8rem;font-weight:700;border-bottom:2px solid #8B0000;display:flex;align-items:center;gap:8px;background:#fff}
+.section-header .tag{padding:3px 10px;border-radius:4px;color:#fff;font-size:.65rem;font-weight:600}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:4px}
+.grid-table{display:grid;gap:2px;padding:2px}
+.cell{border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 6px;min-width:70px;min-height:50px;cursor:pointer;transition:all .15s;text-align:center;border:1px solid transparent;-webkit-tap-highlight-color:transparent}
+.cell:active{transform:scale(.95)}
+.cell.hl{border-color:#ff5722!important;box-shadow:0 0 0 2px #ff5722,0 0 12px rgba(255,87,34,.3)!important;z-index:10;animation:glow .8s ease infinite}
+.cell.empty{background:#fafaf7;border-color:#e8e4de;cursor:default}
+.cell.empty:active{transform:none}
+.cell .cc{font-weight:700;font-size:.68rem;margin-bottom:2px}
+.cell .cn{font-size:.6rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#666}
+.cell .ct{font-size:.5rem;color:#fff;padding:1px 4px;border-radius:2px;margin-top:1px}
+.cell.gh{min-width:auto;min-height:22px;padding:2px 3px;font-size:.65rem}
+.cell.gh:active{transform:none}
+.cell.boot{background:#FFF3E0;border-color:#FFE0B2}.cell.boot .cc{color:#BF360C}
+.cell.belt{background:#FCE4EC;border-color:#F8BBD0}.cell.belt .cc{color:#880E4F}
+.cell.uniform{background:#E3F2FD;border-color:#BBDEFB}.cell.uniform .cc{color:#0D47A1}
+@keyframes glow{0%,100%{box-shadow:0 0 0 2px #ff5722}50%{box-shadow:0 0 0 5px #ff5722,0 0 16px rgba(255,87,34,.4)}}
+.panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:16px;z-index:60;max-height:50vh;overflow-y:auto;display:none;border-top:3px solid #8B0000}
+.panel.show{display:block}
+.panel .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.panel .ph h3{font-size:.85rem;color:#8B0000}
+.panel .pc{font-size:.78rem;line-height:2;color:#555}
+.panel .pc strong{color:#333}
+.panel .close{font-size:1.2rem;color:#999;cursor:pointer;padding:4px 8px;background:none;border:none}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);z-index:55;display:none}
+.overlay.show{display:block}
+.cab-label{font-size:.65rem;font-weight:700;padding:3px 10px;border-left:3px solid;margin:4px 0 2px}
+.tip{text-align:center;color:#999;font-size:.65rem;padding:8px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🇨🇳 国旗仪仗队 · 物资仓库</h1>
+  <div class="sub">马靴 · 腰带 · 礼服 存放位置</div>
+  <div class="search-row">
+    <input type="text" id="q" placeholder="搜索库位/姓名/尺码..." oninput="si()">
+    <button onclick="ds()">🔍</button>
+    <div class="suggestions" id="sug"></div>
+  </div>
+</div>
+<div class="main"><div id="ct"></div><div class="tip">点击格子查看详情 | 左右滑动表格</div></div>
+<div class="overlay" id="ov" onclick="closePanel()"></div>
+<div class="panel" id="pn"><div class="ph"><h3 id="pt"></h3><button class="close" onclick="closePanel()">✕</button></div><div class="pc" id="pb"></div></div>
+
+<script>
+var D = {"grid": [[{"code": "X44-05", "person": "孜英"}, {"code": "X44-04", "person": ""}, {"code": "X43-08", "person": "顾铭文"}, {"code": "X44-06", "person": "林育臣"}, {"code": "X39-02", "person": ""}, {"code": "N43/41-01", "person": "钱俊宇"}, {"code": "N43/41-02", "person": ""}, {"code": "N43/43-01", "person": "章晏华"}, {"code": "N43/43-02", "person": "张博宣"}, {"code": "N43/43-03", "person": "李承哲"}, {"code": "N43/46", "person": ""}, {"code": "N44/44.5", "person": "沈昊"}, {"code": "X42-22", "person": "肖玉茂"}, {"code": "X42-23", "person": "张子昂"}], [{"code": "X43-04", "person": "韩钧宇"}, {"code": "X43-05", "person": ""}, {"code": "X43-06", "person": "朱家兴"}, {"code": "X43-07", "person": "柳洋"}, {"code": "X39-01", "person": "楼震霆"}, {"code": "N42/42.5-02", "person": "韦景浩"}, {"code": "N42/42.5-03", "person": "冯敬栩"}, {"code": "N42/42.5-04", "person": "潘睿"}, {"code": "N42/43.5-02", "person": ""}, {"code": "N42/44", "person": ""}, {"code": "N42/44.5", "person": "叶非"}, {"code": "N45/45", "person": "戴傲"}, {"code": "X42-19", "person": "（鞋面损坏）"}, {"code": "X42-21", "person": ""}], [{"label": "置物架"}, null, null, {"code": "X43-03", "person": ""}, {"code": "X38-04", "person": "郭婷心"}, {"code": "N42/40.5-02", "person": ""}, {"code": "N42/40.5-03", "person": "王梓丞"}, {"code": "N42/40.5-04", "person": "陆荪桐"}, {"code": "N42/43-01", "person": ""}, {"code": "N42/43-02", "person": ""}, {"code": "N42/43.5-01", "person": ""}, {"label": "置物架"}, null, null], [null, null, null, {"code": "X43-02", "person": ""}, {"code": "X38-03", "person": "卢格妤"}, {"code": "N41/42-02", "person": "姚忻成"}, {"code": "N41/42-03", "person": "胡思源"}, {"code": "N41/42-04", "person": "徐顺烨"}, {"code": "N42/42-01", "person": "张煜琦"}, {"code": "N42/42-02", "person": "夏瑞泽"}, {"code": "N42/42.5-01", "person": "张子恒"}, null, null, null], [null, null, null, {"code": "X43-01", "person": ""}, {"code": "X38-02", "person": ""}, {"code": "N39/40.5", "person": "韩雅丽"}, {"code": "N40/39.5-01", "person": "孙鸣"}, {"code": "N40/39.5-02", "person": "余佳卉"}, {"code": "N41/42-05", "person": "叶宇轩"}, {"code": "N41/43.5", "person": ""}, {"code": "N42/40.5-01", "person": ""}, null, null, null], [null, null, null, {"code": "X42-24", "person": ""}, {"code": "J38-01", "person": ""}, {"code": "N38/40-01", "person": "许诺"}, {"code": "N38/40-02", "person": ""}, {"code": "N38/40-03", "person": "段茗萱"}, {"code": "N40/41", "person": "吕凯进"}, {"code": "N40/41.5", "person": "程锦添"}, {"code": "N41/42-01", "person": "（舟山）"}, null, null, null], [null, null, null, null, null, null, null, null, {"code": "N38/41", "person": "江文欣"}, {"code": "N39/38-01", "person": "吴桐"}, {"code": "N39/38-02", "person": "柯天翊"}, {"code": "X42-12", "person": ""}, {"code": "X42-13", "person": ""}, {"code": "X42-17", "person": ""}], [{"label": "置物架"}, null, null, null, {"code": "X37-05", "person": "王雨梦"}, {"code": "N37/40", "person": "俞恩祺"}, {"code": "N37/41", "person": "艾克达"}, {"code": "N38/37", "person": "王艺霏"}, {"code": "N38/37.5-01", "person": "张艺"}, {"code": "N38/37.5-02", "person": "章芮容"}, {"code": "N38/37.5-03", "person": "施东隅"}, {"code": "X42-06", "person": "李思齐"}, {"code": "X42-07", "person": "姚爽"}, {"code": "X42-09", "person": ""}], [null, null, null, {"code": "J41-03", "person": ""}, {"code": "X37-04", "person": "呼岳洋"}, {"code": "N37/37-04", "person": ""}, {"code": "N37/37.5-01", "person": "林珩"}, {"code": "N37/37.5-02", "person": ""}, {"code": "N37/38-01", "person": "陈涵予"}, {"code": "N37/38-02", "person": "祁子谦"}, {"code": "N37/39.5", "person": "杨阿丽雅"}, {"code": "X42-01", "person": "李秉均"}, {"code": "X42-03", "person": "张嘉靖"}, {"code": "X42-05", "person": "努尔加娜特"}], [null, null, {"code": "X45-01", "person": ""}, {"code": "J41-01", "person": "叶栩浩"}, {"code": "X36-01", "person": "纪博雅"}, {"code": "N36/38-02", "person": "马欣雅"}, {"code": "N36/39", "person": "李泽一"}, {"code": "N37/36.5", "person": ""}, {"code": "N37/37-01", "person": ""}, {"code": "N37/37-02", "person": "李诗诗"}, {"code": "N37/37-03", "person": ""}, {"code": "X41-01", "person": "项烨"}, {"code": "X41-02", "person": "吴昕桐"}, {"code": "X41-03", "person": "陈思骆"}], [null, null, {"code": "X39-03", "person": "张鹏"}, {"code": "X39-04", "person": ""}, {"code": "J36-02", "person": ""}, {"code": "N35/36-01", "person": "方嫄 董欢瑶"}, {"code": "N35/37", "person": "初姝彤"}, {"code": "N36/36-01", "person": "岳佳凝"}, {"code": "N36/36-02", "person": "方佳瑶"}, {"code": "N36/37", "person": "杨羽茜"}, {"code": "N36/38-01", "person": "邬家琪"}, {"code": "X39-06", "person": ""}, {"code": "X39-07", "person": "文科"}, {"code": "X39-09", "person": ""}]], "belts": [{"code": "F01", "uniform_size": "F165/80-01", "person": "李泽一", "cabinet": "一柜"}, {"code": "F02", "uniform_size": "F165/80-02", "person": "", "cabinet": "一柜"}, {"code": "F03", "uniform_size": "F165/84-01", "person": "林珩", "cabinet": "一柜"}, {"code": "F04", "uniform_size": "F165/84-02", "person": "方佳瑶", "cabinet": "一柜"}, {"code": "F05", "uniform_size": "F165/84-03", "person": "纪博雅", "cabinet": "一柜"}, {"code": "F06", "uniform_size": "F170/84-06", "person": "韩雅丽", "cabinet": "四柜"}, {"code": "F07", "uniform_size": "F165/88-01", "person": "李诗诗、王雨梦", "cabinet": "二柜"}, {"code": "F08", "uniform_size": "F165/88-02", "person": "郭婷心", "cabinet": "二柜"}, {"code": "F09", "uniform_size": "F165/88-03", "person": "岳佳凝、吴桐", "cabinet": "二柜"}, {"code": "F10", "uniform_size": "F165/88-04", "person": "江文欣、董欢瑶", "cabinet": "二柜"}, {"code": "F11", "uniform_size": "F170/84-01", "person": "方嫄", "cabinet": "四柜"}, {"code": "F12", "uniform_size": "F170/84-02", "person": "柯天翊", "cabinet": "四柜"}, {"code": "F13", "uniform_size": "F170/84-03", "person": "祁子谦、段茗萱", "cabinet": "四柜"}, {"code": "F14", "uniform_size": "F170/84-04", "person": "张艺", "cabinet": "四柜"}, {"code": "F15", "uniform_size": "F170/88-01", "person": "施东隅", "cabinet": "四柜"}, {"code": "F16", "uniform_size": "F170/88-02", "person": "呼岳洋、章芮容", "cabinet": "四柜"}, {"code": "F17", "uniform_size": "F170/92-01", "person": "艾克达、卢格妤", "cabinet": "五柜"}, {"code": "F18", "uniform_size": "F170/92-02", "person": "许诺、余佳卉", "cabinet": "五柜"}, {"code": "F19", "uniform_size": "F175/88-01", "person": "马欣雅", "cabinet": "二柜"}, {"code": "F20", "uniform_size": "F175/92-01", "person": "俞恩祺、陈涵予", "cabinet": "三柜"}, {"code": "M01", "uniform_size": "M175/88-01", "person": "陈思骆", "cabinet": "一柜"}, {"code": "M02", "uniform_size": "M175/88-02", "person": "吴昕桐", "cabinet": "一柜"}, {"code": "M03", "uniform_size": "M175/92-01", "person": "楼震霆、潘睿", "cabinet": "一柜"}, {"code": "M04", "uniform_size": "M175/96-01", "person": "张鹏", "cabinet": "三柜"}, {"code": "M05", "uniform_size": "M175/96-02", "person": "叶宇轩", "cabinet": "三柜"}, {"code": "M06", "uniform_size": "M175/96-03", "person": "文科", "cabinet": "三柜"}, {"code": "M07", "uniform_size": "M175/96-04", "person": "冯敬栩", "cabinet": "三柜"}, {"code": "M08", "uniform_size": "M180/92-01", "person": "张嘉靖", "cabinet": "三柜"}, {"code": "M09", "uniform_size": "M180/92-02", "person": "肖玉茂", "cabinet": "三柜"}, {"code": "M10", "uniform_size": "M180/92-03", "person": "夏瑞泽", "cabinet": "三柜"}, {"code": "M11", "uniform_size": "M180/92-04", "person": "胡思源", "cabinet": "三柜"}, {"code": "M12", "uniform_size": "M180/92-05", "person": "李思齐", "cabinet": "二柜"}, {"code": "M13", "uniform_size": "M180/92-06", "person": "叶栩浩", "cabinet": "二柜"}, {"code": "M14", "uniform_size": "M185/100-03", "person": "", "cabinet": "六柜"}, {"code": "M15", "uniform_size": "M180/96-05", "person": "朱家兴、姚忻成", "cabinet": "五柜"}, {"code": "M16", "uniform_size": "M180/96-01", "person": "项烨、姚爽", "cabinet": "五柜"}, {"code": "M17", "uniform_size": "M180/96-02", "person": "柳洋、孙鸣", "cabinet": "五柜"}, {"code": "M18", "uniform_size": "M180/96-03", "person": "章晏华", "cabinet": "五柜"}, {"code": "M19", "uniform_size": "M180/96-04", "person": "沈昊、王梓丞", "cabinet": "五柜"}, {"code": "M20", "uniform_size": "M175/92-02", "person": "吕凯进", "cabinet": "一柜"}, {"code": "M21", "uniform_size": "M180/96-06", "person": "钱俊宇、努尔加娜特、张子恒", "cabinet": "四柜"}, {"code": "M22", "uniform_size": "M180/96-07", "person": "张煜琦、孜英", "cabinet": "四柜"}, {"code": "M23", "uniform_size": "M180/100-01", "person": "张子昂", "cabinet": "五柜"}, {"code": "M24", "uniform_size": "M185/100-01", "person": "张博宣、戴傲", "cabinet": "六柜"}, {"code": "M25", "uniform_size": "M185/100-02", "person": "顾铭文、韦景浩、林育臣", "cabinet": "六柜"}, {"code": "M26", "uniform_size": "M185/96-01", "person": "李承哲", "cabinet": "六柜"}, {"code": "M27", "uniform_size": "M185/96-02", "person": "韩钧宇、陆荪桐", "cabinet": "六柜"}], "uniforms": [{"code": "F165/80-01", "belt": "F01", "person": "李泽一", "cabinet": "一柜"}, {"code": "F165/80-02", "belt": "F02", "person": "", "cabinet": "一柜"}, {"code": "F165/84-01", "belt": "F03", "person": "林珩", "cabinet": "一柜"}, {"code": "F165/84-02", "belt": "F04", "person": "方佳瑶", "cabinet": "一柜"}, {"code": "F165/84-03", "belt": "F05", "person": "纪博雅", "cabinet": "一柜"}, {"code": "F165/84-04", "belt": "", "person": "", "cabinet": "一柜"}, {"code": "F165/84-05", "belt": "", "person": "", "cabinet": "一柜"}, {"code": "F165/88-01", "belt": "F07", "person": "李诗诗、王雨梦", "cabinet": "二柜"}, {"code": "F165/88-02", "belt": "F08", "person": "郭婷心", "cabinet": "二柜"}, {"code": "F165/88-03", "belt": "F09", "person": "岳佳凝、吴桐", "cabinet": "二柜"}, {"code": "F165/88-04", "belt": "F10", "person": "江文欣、董欢瑶", "cabinet": "二柜"}, {"code": "F170/84-01", "belt": "F11", "person": "方嫄", "cabinet": "四柜"}, {"code": "F170/84-02", "belt": "F12", "person": "柯天翊", "cabinet": "四柜"}, {"code": "F170/84-03", "belt": "F13", "person": "祁子谦、段茗萱", "cabinet": "四柜"}, {"code": "F170/84-04", "belt": "F14", "person": "张艺", "cabinet": "四柜"}, {"code": "F170/84-05", "belt": "", "person": "", "cabinet": "四柜"}, {"code": "F170/84-06", "belt": "F06", "person": "韩雅丽", "cabinet": "四柜"}, {"code": "F170/88-01", "belt": "F15", "person": "施东隅", "cabinet": "四柜"}, {"code": "F170/88-02", "belt": "F16", "person": "呼岳洋、章芮容", "cabinet": "四柜"}, {"code": "F170/88-03", "belt": "", "person": "", "cabinet": "四柜"}, {"code": "F170/92-01", "belt": "F17", "person": "艾克达、卢格妤", "cabinet": "五柜"}, {"code": "F170/92-02", "belt": "F18", "person": "许诺、余佳卉", "cabinet": "五柜"}, {"code": "F175/88-01", "belt": "F19", "person": "马欣雅", "cabinet": "二柜"}, {"code": "F175/88-02", "belt": "", "person": "", "cabinet": "三柜"}, {"code": "F175/92-01", "belt": "F20", "person": "俞恩祺、陈涵予", "cabinet": "三柜"}, {"code": "F175/92-02", "belt": "", "person": "", "cabinet": "三柜"}, {"code": "M175/88-01", "belt": "M01", "person": "陈思骆", "cabinet": "一柜"}, {"code": "M175/88-02", "belt": "M02", "person": "吴昕桐", "cabinet": "一柜"}, {"code": "M175/92-01", "belt": "M03", "person": "楼震霆、潘睿", "cabinet": "一柜"}, {"code": "M175/92-02", "belt": "M20", "person": "吕凯进", "cabinet": "一柜"}, {"code": "M175/96-01", "belt": "M04", "person": "张鹏", "cabinet": "三柜"}, {"code": "M175/96-02", "belt": "M05", "person": "叶宇轩", "cabinet": "三柜"}, {"code": "M175/96-03", "belt": "M06", "person": "文科", "cabinet": "三柜"}, {"code": "M175/96-04", "belt": "M07", "person": "冯敬栩", "cabinet": "三柜"}, {"code": "M180/92-05", "belt": "M12", "person": "李思齐", "cabinet": "二柜"}, {"code": "M180/92-06", "belt": "M13", "person": "叶栩浩", "cabinet": "二柜"}, {"code": "M180/92-07", "belt": "", "person": "", "cabinet": "二柜"}, {"code": "M180/92-08", "belt": "", "person": "", "cabinet": "二柜"}, {"code": "M180/92-10", "belt": "", "person": "", "cabinet": "二柜"}, {"code": "M180/92-11", "belt": "", "person": "", "cabinet": "二柜"}, {"code": "M180/92-01", "belt": "M08", "person": "张嘉靖", "cabinet": "三柜"}, {"code": "M180/92-02", "belt": "M09", "person": "肖玉茂", "cabinet": "三柜"}, {"code": "M180/92-03", "belt": "M10", "person": "夏瑞泽", "cabinet": "三柜"}, {"code": "M180/92-04", "belt": "M11", "person": "胡思源", "cabinet": "三柜"}, {"code": "M180/92-09", "belt": "", "person": "", "cabinet": "五柜"}, {"code": "M180/92-12", "belt": "", "person": "", "cabinet": "五柜"}, {"code": "M180/96-06", "belt": "M21", "person": "钱俊宇、努尔加娜特、张子恒", "cabinet": "四柜"}, {"code": "M180/96-07", "belt": "M22", "person": "张煜琦、孜英", "cabinet": "四柜"}, {"code": "M180/96-01", "belt": "M16", "person": "项烨、姚爽", "cabinet": "五柜"}, {"code": "M180/96-02", "belt": "M17", "person": "柳洋、孙鸣", "cabinet": "五柜"}, {"code": "M180/96-03", "belt": "M18", "person": "章晏华", "cabinet": "五柜"}, {"code": "M180/96-04", "belt": "M19", "person": "沈昊、王梓丞", "cabinet": "五柜"}, {"code": "M180/96-05", "belt": "M15", "person": "朱家兴、姚忻成", "cabinet": "五柜"}, {"code": "M180/96-08", "belt": "", "person": "", "cabinet": "六柜"}, {"code": "M180/96-09", "belt": "", "person": "", "cabinet": "六柜"}, {"code": "M180/100-01", "belt": "M23", "person": "张子昂", "cabinet": "五柜"}, {"code": "M180/100-02", "belt": "", "person": "", "cabinet": "六柜"}, {"code": "M180/100-03", "belt": "", "person": "", "cabinet": "六柜"}, {"code": "M180/100-04", "belt": "", "person": "", "cabinet": "六柜"}, {"code": "M180/100-05", "belt": "", "person": "", "cabinet": "六柜"}, {"code": "M185/96-01", "belt": "M26", "person": "李承哲", "cabinet": "六柜"}, {"code": "M185/96-02", "belt": "M27", "person": "韩钧宇、陆荪桐", "cabinet": "六柜"}, {"code": "M185/100-01", "belt": "M24", "person": "张博宣、戴傲", "cabinet": "六柜"}, {"code": "M185/100-02", "belt": "M25", "person": "顾铭文、韦景浩、林育臣", "cabinet": "六柜"}, {"code": "M185/100-03", "belt": "M14", "person": "", "cabinet": "六柜"}]};
+var ALL=[],CM={};
+var SHIRT_SET={'F165/80-01':1,'F165/80-02':1,'F165/84-02':1,'F165/88-01':1,'F165/88-02':1,'F165/88-03':1,'F165/88-04':1,'M180/92-05':1,'M175/96-02':1,'F170/84-01':1,'F170/84-02':1,'F170/84-03':1,'F170/84-06':1,'F170/88-01':1,'F170/88-02':1,'F170/92-01':1};
+
+function fmtName(nm){if(!nm)return'';var p=nm.split(/[\/,，、]/).filter(function(x){return x.trim()});return p.length>1?p.length+'人':p[0].trim()}
+
+function init(){var h=buildBoots()+buildSec(D.belts,'belt','🎽 腰带','#C62828')+buildSec(D.uniforms,'uniform','👔 礼服','#1565C0');document.getElementById('ct').innerHTML=h;indexDOM();indexAll()}
+
+function buildBoots(){
+  var flat=[];D.grid.forEach(function(r){r.forEach(function(c){if(c&&c.code)flat.push(c)})});
+  var cg=[{n:1,c:4},{n:2,c:4},{n:3,c:3},{n:4,c:3}],rg=[{n:'A',r:2},{n:'B',r:4},{n:'C',r:5}];
+  var h='<div class="section"><div class="section-header"><span class="tag" style="background:#E65100">🥾</span>马靴 · '+flat.length+'库位</div><div class="table-wrap"><div class="grid-table" style="grid-template-columns:28px repeat(14,minmax(64px,1fr))">';
+  h+='<div class="cell gh" style="background:#fafafa"></div>';
+  cg.forEach(function(g){h+='<div class="cell gh" style="grid-column:span '+g.c+';background:#FFE0B2;color:#BF360C;font-weight:700">'+g.n+'</div>'});
+  var ri=0;
+  rg.forEach(function(rg2){
+    D.grid.slice(ri,ri+rg2.r).forEach(function(row,lri){
+      if(lri===0)h+='<div class="cell gh" style="grid-row:span '+rg2.r+';writing-mode:vertical-lr;background:#FFE0B2;color:#BF360C;font-weight:700">'+rg2.n+'</div>';
+      for(var ci=0;ci<14;ci++){
+        var cell=(ci<row.length)?row[ci]:null;
+        if(cell&&cell.code){var nm=cell.person||'';h+='<div class="cell boot" data-type="boot" data-code="'+cell.code+'"><span class="cc">'+cell.code+'</span>';if(nm)h+='<span class="cn">'+fmtName(nm)+'</span>';h+='</div>'}
+        else h+='<div class="cell empty"></div>';
+      }
+    });ri+=rg2.r;
+  });
+  h+='</div></div></div>';return h;
+}
+
+function buildSec(items,type,title,color){
+  if(!items.length)return'';
+  var cabs=['一柜','二柜','三柜','四柜','五柜','六柜'];
+  var ccl=['#E65100','#FF8F00','#F9A825','#FFB300','#FFC107','#FFCA28'];
+  var h='<div class="section"><div class="section-header"><span class="tag" style="background:'+color+'">'+title.substring(0,2)+'</span>'+title+' · '+items.length+'项</div><div class="table-wrap">';
+  cabs.forEach(function(cab,ci){
+    var grp=items.filter(function(it){return it.cabinet===cab});if(!grp.length)return;
+    h+='<div class="cab-label" style="color:'+ccl[ci]+';border-color:'+ccl[ci]+'">'+cab+' · '+grp.length+'项</div>';
+    h+='<div class="grid-table" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))">';
+    grp.forEach(function(item){
+      var nm=item.person||'',st=(type==='uniform'&&SHIRT_SET[item.code])?'<span class="ct" style="background:#4CAF50">衬衫</span>':'';
+      h+='<div class="cell '+type+'" data-type="'+type+'" data-code="'+item.code+'"><span class="cc">'+item.code+'</span>';
+      if(nm)h+='<span class="cn">'+fmtName(nm)+'</span>';
+      if(st)h+=st;
+      h+='</div>';
+    });h+='</div>';
+  });h+='</div></div>';return h;
+}
+
+function indexDOM(){CM={};document.querySelectorAll('.cell[data-type]').forEach(function(el){var t=el.getAttribute('data-type'),c=el.getAttribute('data-code');CM[t+'_'+c]=el;el.addEventListener('click',function(){clearHL();if(t==='boot'){D.grid.forEach(function(r){r.forEach(function(cell){if(cell&&cell.code===c)openPanel('🥾 马靴 '+c,'📍 库位：<strong>'+c+'</strong><br>👤 '+(cell.person||'未分配'))})})}else if(t==='belt'){var b=D.belts.find(function(x){return x.code===c});if(b)openPanel('🎽 腰带 '+c,(c.indexOf('F')===0?'女款':'男款')+' · '+b.cabinet+'<br>👔 礼服尺码：<strong>'+(b.uniform_size||'-')+'</strong><br>👤 <strong>'+(b.person||'未分配')+'</strong>')}else{var u=D.uniforms.find(function(x){return x.code===c});if(u){var st2=SHIRT_SET[c]?' <span style="background:#4CAF50;color:#fff;padding:1px 6px;border-radius:3px;font-size:.65rem">有配套衬衫</span>':'';openPanel('👔 礼服 '+c+st2,'🏷️ '+u.cabinet+'<br>🎽 腰带：<strong>'+(u.belt||'-')+'</strong><br>👤 <strong>'+(u.person||'未分配')+'</strong>')}}el.classList.add('hl')})})}
+
+function indexAll(){ALL=[];D.grid.forEach(function(r){r.forEach(function(c){if(c&&c.code)ALL.push({t:'boot',d:{code:c.code,person:c.person||''}})})});D.belts.forEach(function(b){ALL.push({t:'belt',d:b})});D.uniforms.forEach(function(u){ALL.push({t:'uniform',d:u})})}
+
+function openPanel(title,body){document.getElementById('pt').innerHTML=title;document.getElementById('pb').innerHTML=body;document.getElementById('pn').classList.add('show');document.getElementById('ov').classList.add('show')}
+function closePanel(){document.getElementById('pn').classList.remove('show');document.getElementById('ov').classList.remove('show')}
+function clearHL(){for(var k in CM)CM[k].classList.remove('hl')}
+
+function si(){
+  var q=document.getElementById('q').value.trim(),s=document.getElementById('sug');if(q.length<1){s.style.display='none';return}
+  var ql=q.toLowerCase();
+  var ms=ALL.filter(function(a){var d=a.d;return d.code.toLowerCase().indexOf(ql)>=0||(d.person&&d.person.indexOf(q)>=0)||(d.cabinet&&d.cabinet.indexOf(q)>=0)||(d.belt&&d.belt.toLowerCase().indexOf(ql)>=0)||(d.uniform_size&&d.uniform_size.toLowerCase().indexOf(ql)>=0)||(ql.indexOf('衬衫')>=0&&SHIRT_SET[d.code])}).slice(0,6);
+  if(!ms.length){s.style.display='none';return}
+  var ic={boot:'🥾',belt:'🎽',uniform:'👔'};
+  s.innerHTML=ms.map(function(m){return'<div class="item">'+ic[m.t]+' '+m.d.code+(m.d.person?' · '+fmtName(m.d.person):'')+'</div>'}).join('');
+  s.style.display='block';
+}
+
+function ds(){
+  var q=document.getElementById('q').value.trim();if(!q)return;
+  document.getElementById('sug').style.display='none';clearHL();
+  var ql=q.toLowerCase();
+  var ms=ALL.filter(function(a){var d=a.d;return d.code.toLowerCase().indexOf(ql)>=0||(d.person&&d.person.indexOf(q)>=0)||(d.cabinet&&d.cabinet.indexOf(q)>=0)||(d.belt&&d.belt.toLowerCase().indexOf(ql)>=0)||(d.uniform_size&&d.uniform_size.toLowerCase().indexOf(ql)>=0)||(ql.indexOf('衬衫')>=0&&SHIRT_SET[d.code])});
+  if(!ms.length){openPanel('🔍 搜索','未找到 "'+q+'"');return}
+  ms.forEach(function(m,i){var k=m.t+'_'+m.d.code;if(CM[k]){CM[k].classList.add('hl');if(i===0)CM[k].scrollIntoView({behavior:'smooth',block:'center'})}});
+  var r0=ms[0];
+  if(r0.t==='boot'){D.grid.forEach(function(r){r.forEach(function(c){if(c&&c.code===r0.d.code)openPanel('🥾 '+r0.d.code,'马靴<br>👤 '+(r0.d.person||'未分配'))})})}
+  else if(r0.t==='belt'){var b=D.belts.find(function(x){return x.code===r0.d.code});if(b)openPanel('🎽 '+b.code,(b.code.indexOf('F')===0?'女款':'男款')+' · '+b.cabinet+'<br>👤 '+(b.person||'未分配'))}
+  else{var u=D.uniforms.find(function(x){return x.code===r0.d.code});if(u)openPanel('👔 '+u.code,u.cabinet+'<br>🎽 '+(u.belt||'-')+'<br>👤 '+(u.person||'未分配'))}
+}
+
+init();
+</script>
+</body>
+</html>
