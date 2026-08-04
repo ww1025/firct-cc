@@ -844,7 +844,7 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f0ec;c
 .cell.belt{background:#FCE4EC;border-color:#F8BBD0}.cell.belt .cc{color:#880E4F}
 .cell.uniform{background:#E3F2FD;border-color:#BBDEFB}.cell.uniform .cc{color:#0D47A1}
 @keyframes glow{0%,100%{box-shadow:0 0 0 2px #ff5722}50%{box-shadow:0 0 0 5px #ff5722,0 0 16px rgba(255,87,34,.4)}}
-.panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.25);padding:16px;z-index:60;max-height:60vh;max-width:90vw;width:320px;overflow-y:auto;display:none;border-top:3px solid #8B0000}
+.panel{position:sticky;top:0;background:#fff;border-radius:0 0 12px 12px;box-shadow:0 4px 20px rgba(0,0,0,.15);padding:16px;z-index:60;max-height:50vh;overflow-y:auto;display:none;border-bottom:3px solid #8B0000}
 .panel.show{display:block}
 .panel .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .panel .ph h3{font-size:.85rem;color:#8B0000}
@@ -867,9 +867,9 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f0ec;c
     <div class="suggestions" id="sug"></div>
   </div>
 </div>
+<div class="panel" id="pn"><div class="ph"><h3 id="pt"></h3><button class="close" onclick="wh_close()">✕</button></div><div class="pc" id="pb"></div></div>
 <div class="main"><div id="ct">''' + body + '''</div><div class="tip">点击格子查看详情 | 左右滑动表格</div></div>
 <div class="overlay" id="ov" onclick="wh_close()"></div>
-<div class="panel" id="pn"><div class="ph"><h3 id="pt"></h3><button class="close" onclick="wh_close()">✕</button></div><div class="pc" id="pb"></div></div>
 
 <script>
 function wh_open(title,body){document.getElementById('pt').innerHTML=title;document.getElementById('pb').innerHTML=body;document.getElementById('pn').classList.add('show');document.getElementById('ov').classList.add('show')}
