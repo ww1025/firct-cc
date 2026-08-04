@@ -340,8 +340,10 @@ def generate_faculty_excel(persons, changed):
 
 # ── OCR ──
 def ocr_faculty_roster(img_bytes, excel_bytes):
+    """返回 (queue_text, ocr_roles)，与 server.py 完全一致"""
     from PIL import Image
     import numpy as np
+    import math
 
     with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as t:
         t.write(img_bytes); ip = t.name
@@ -409,6 +411,7 @@ def ocr_faculty_roster(img_bytes, excel_bytes):
 
         ROLE_KW = ['总负责', '场控', '后勤', '摄影']
         QUEUE_TITLE_KW = ['擎护旗', '队列']
+
         first_role_col_idx = None
         for i, (_, col_blocks) in enumerate(merged_cols):
             col_text = ' '.join(b['text'] for b in col_blocks)
@@ -416,13 +419,11 @@ def ocr_faculty_roster(img_bytes, excel_bytes):
                 first_role_col_idx = i; break
 
         if first_role_col_idx is not None:
-            for i in range(len(merged_cols)):
-                merged_cols[i] = merged_cols[i] + ({'type': 'role' if i >= first_role_col_idx else 'queue'},)
+            col_types = ['role' if i >= first_role_col_idx else 'queue' for i in range(len(merged_cols))]
         else:
-            for i in range(len(merged_cols)):
-                merged_cols[i] = merged_cols[i] + ({'type': 'queue' if i < 4 else 'role'},)
+            col_types = ['queue' if i < 4 else 'role' for i in range(len(merged_cols))]
 
-        def fuzzy_match_name(name, name_list):
+        def _fuzzy(name, name_list):
             if not name or len(name) < 1: return name
             if name in name_list: return name
             nc = set(name); best, best_score = name, 0
@@ -434,48 +435,102 @@ def ocr_faculty_roster(img_bytes, excel_bytes):
                 if score > best_score: best_score, best = score, ref
             return best if best_score >= 5 and best != name else name
 
-        queue_names = []
-        for col_idx, col_blocks, meta in merged_cols:
-            ctype = meta['type']
-            col_blocks.sort(key=lambda b: b['y1'])
-            merged_texts = []; i = 0
-            while i < len(col_blocks):
-                b = col_blocks[i]; t = b['text'].strip()
-                if len(t) == 1 and i + 1 < len(col_blocks):
-                    nb = col_blocks[i + 1]
+        def _clean_name_block(blocks_in_col):
+            blocks_in_col.sort(key=lambda b: b['y1'])
+            merged = []
+            i = 0
+            while i < len(blocks_in_col):
+                b = blocks_in_col[i]; t = b['text'].strip()
+                if len(t) == 1 and i + 1 < len(blocks_in_col):
+                    nb = blocks_in_col[i + 1]
                     char_h = b['y3'] - b['y1']
                     if char_h > 0 and nb['y1'] - b['y3'] < char_h * 3.0:
                         t = t + nb['text'].strip(); i += 1
-                merged_texts.append({'text': t, 'y1': b['y1']}); i += 1
-            col_names = []
-            for mt in merged_texts:
-                t = mt['text'].strip()
+                merged.append(t); i += 1
+            cleaned = []
+            for t in merged:
                 if not t: continue
                 if t in QUEUE_TITLE_KW: continue
                 if t in ROLE_KW: continue
                 for kw in QUEUE_TITLE_KW + ROLE_KW:
                     if kw in t and t != kw: t = t.replace(kw, '').strip()
-                if not t: continue
-                corrected = fuzzy_match_name(t, known_names)
-                col_names.append(corrected)
-            if ctype == 'queue':
-                for n in col_names:
-                    if n and n not in queue_names: queue_names.append(n)
+                if t: cleaned.append(t)
+            return cleaned
 
-        if known_names:
-            all_text = ''.join(b['text'] for b in blocks)
-            all_chars = set(all_text)
-            for ref_name in known_names:
-                if ref_name in queue_names: continue
-                rc = set(ref_name)
-                hit = all_chars & rc
-                if len(hit) >= max(2, len(rc) * 0.5):
-                    for b in blocks:
-                        if fuzzy_match_name(b['text'], known_names) == ref_name:
-                            if ref_name not in queue_names:
-                                queue_names.append(ref_name); break
+        queue_raw = []
+        ocr_roles = {}
+
+        all_role_blocks = []
+        for idx, (_, col_blocks) in enumerate(merged_cols):
+            if col_types[idx] == 'queue':
+                for t in _clean_name_block(col_blocks):
+                    corrected = _fuzzy(t, known_names)
+                    if corrected not in queue_raw:
+                        queue_raw.append(corrected)
+            else:
+                all_role_blocks.extend(col_blocks)
+
+        # 角色列按 y 分段匹配角色关键词
+        if all_role_blocks:
+            all_role_blocks.sort(key=lambda b: b['y1'])
+            role_markers = []
+            name_blocks = []
+            for b in all_role_blocks:
+                t = b['text'].strip()
+                if t in ROLE_KW:
+                    role_markers.append((b['y1'], t))
+                else:
+                    name_blocks.append(b)
+            if role_markers:
+                role_markers.sort(key=lambda x: x[0])
+                for _, rk in role_markers:
+                    ocr_roles.setdefault(rk, [])
+                for nb in name_blocks:
+                    best_role, best_dy = None, float('inf')
+                    for ry, rk in role_markers:
+                        dy = abs(nb['y1'] - ry)
+                        if dy < best_dy:
+                            best_dy, best_role = dy, rk
+                    if best_role:
+                        for ct in _clean_name_block([nb]):
+                            corrected = _fuzzy(ct, known_names)
+                            if corrected not in ocr_roles[best_role]:
+                                ocr_roles[best_role].append(corrected)
+
+        # 从队列中移除角色人员
+        role_people = set()
+        for names in ocr_roles.values():
+            role_people.update(names)
+        queue_raw = [n for n in queue_raw if n not in role_people]
+
+        # 全图碎片兜底
+        all_text = ''.join(b['text'] for b in blocks)
+        all_chars = set(all_text)
+        for ref_name in known_names:
+            if ref_name in queue_raw or ref_name in role_people: continue
+            rc = set(ref_name)
+            hit = all_chars & rc
+            if len(hit) >= max(2, len(rc) * 0.5):
+                for b in blocks:
+                    matched = _fuzzy(b['text'], known_names)
+                    if matched == ref_name:
+                        if matched not in queue_raw and matched not in role_people:
+                            col_i = int(b['cx'] // COL_W)
+                            is_role = False
+                            if first_role_col_idx is not None:
+                                for mi, (mci, _) in enumerate(merged_cols):
+                                    if col_i == mci and col_types[mi] == 'role':
+                                        is_role = True; break
+                            if is_role:
+                                if ref_name not in role_people:
+                                    queue_raw.append(ref_name)
+                            else:
+                                if ref_name not in queue_raw:
+                                    queue_raw.append(ref_name)
+                        break
+
         os.unlink(pre)
-        return '\n'.join(queue_names) if queue_names else ''
+        return ('\n'.join(queue_raw) if queue_raw else '', ocr_roles)
     finally:
         try: os.unlink(ip)
         except: pass
@@ -1161,7 +1216,7 @@ elif st.session_state.page == 'faculty':
     if excel_file is not None and image_file is not None:
         if not st.session_state.get('_ocr_done', False):
             with st.spinner("AI 正在识别照片中的人员名单..."):
-                ocr_text = ocr_faculty_roster(image_file.getvalue(), excel_file.getvalue())
+                ocr_text, ocr_roles = ocr_faculty_roster(image_file.getvalue(), excel_file.getvalue())
             # 无论有没有结果都写入 session_state，避免重复触发
             st.session_state.fac_roster = ocr_text if ocr_text else ''
             st.session_state._ocr_done = True
@@ -1211,6 +1266,10 @@ elif st.session_state.page == 'faculty':
                     all_persons = parse_equipment_sheet(wb['装备分配'])
                     name_map = {p['name']: p for p in all_persons}
                     pool = build_pool(wb)
+                    # 为 boots/belt 提供空池（与 Flask 版一致）
+                    for key in ['boots', 'belt']:
+                        if key not in pool:
+                            pool[key] = set()
 
                     faculty_persons = [dict(name_map[n]) for n in queue_names if n in name_map]
                     missing = [n for n in queue_names if n not in name_map]
