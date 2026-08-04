@@ -689,16 +689,237 @@ def make_person_rows(sorted_people, changed):
     return '\n'.join(rows)
 
 
+def _wh_escape(s):
+    """HTML-escape for inline onclick attributes"""
+    return s.replace('&', '&amp;').replace("'", "&#39;").replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+
+def _wh_fmt_name(nm):
+    """Short name helper — match JS fmtName"""
+    if not nm:
+        return ''
+    parts = [x.strip() for x in nm.replace('/', ',').replace('，', ',').replace('、', ',').split(',') if x.strip()]
+    return f'{len(parts)}人' if len(parts) > 1 else parts[0]
+
+SHIRT_SET = {
+    'F165/80-01':1,'F165/80-02':1,'F165/84-02':1,'F165/88-01':1,'F165/88-02':1,
+    'F165/88-03':1,'F165/88-04':1,'M180/92-05':1,'M175/96-02':1,'F170/84-01':1,
+    'F170/84-02':1,'F170/84-03':1,'F170/84-06':1,'F170/88-01':1,'F170/88-02':1,
+    'F170/92-01':1,
+}
+
+def _wh_build_boot_cell(cell):
+    """Generate one boot cell HTML with inline onclick"""
+    code = _wh_escape(str(cell.get('code', '')))
+    person = str(cell.get('person', ''))
+    nm = _wh_fmt_name(person)
+    psn = _wh_escape(person)
+    onclick = f"onclick=\"wh_openBoot('{code}','{psn}')\""
+    inner = f'<span class="cc">{code}</span>'
+    if nm:
+        inner += f'<span class="cn">{_wh_escape(nm)}</span>'
+    return f'<div class="cell boot" data-code="{code}" {onclick}>{inner}</div>'
+
+def _wh_render_boots(data):
+    """Render the boots (grid) section"""
+    grid = data.get('grid', [])
+    flat = [c for r in grid for c in r if c and c.get('code')]
+    cg = [{'n':1,'c':4},{'n':2,'c':4},{'n':3,'c':3},{'n':4,'c':3}]
+    rg = [{'n':'A','r':2},{'n':'B','r':4},{'n':'C','r':5}]
+
+    h = '<div class="section"><div class="section-header"><span class="tag" style="background:#E65100">🥾</span>马靴 · ' + str(len(flat)) + '库位</div>'
+    h += '<div class="table-wrap"><div class="grid-table" style="grid-template-columns:28px repeat(14,minmax(64px,1fr))">'
+    h += '<div class="cell gh" style="background:#fafafa"></div>'
+    for g in cg:
+        h += f'<div class="cell gh" style="grid-column:span {g["c"]};background:#FFE0B2;color:#BF360C;font-weight:700">{g["n"]}</div>'
+
+    ri = 0
+    for rg2 in rg:
+        rows = grid[ri:ri+rg2['r']]
+        for lri, row in enumerate(rows):
+            if lri == 0:
+                h += f'<div class="cell gh" style="grid-row:span {rg2["r"]};writing-mode:vertical-lr;background:#FFE0B2;color:#BF360C;font-weight:700">{rg2["n"]}</div>'
+            for ci in range(14):
+                cell = row[ci] if ci < len(row) else None
+                if cell and cell.get('code'):
+                    h += _wh_build_boot_cell(cell)
+                else:
+                    h += '<div class="cell empty"></div>'
+        ri += rg2['r']
+    h += '</div></div></div>'
+    return h
+
+def _wh_belt_cell(item):
+    """Generate one belt cell HTML with inline onclick"""
+    code = _wh_escape(str(item.get('code', '')))
+    person = str(item.get('person', ''))
+    nm = _wh_fmt_name(person)
+    cabinet = _wh_escape(str(item.get('cabinet', '')))
+    uniform_size = _wh_escape(str(item.get('uniform_size', '')))
+    gender = '女款' if code.startswith('F') else '男款'
+    psn = _wh_escape(person)
+    onclick = f"onclick=\"wh_openBelt('{code}','{gender}','{cabinet}','{uniform_size}','{psn}')\""
+    inner = f'<span class="cc">{code}</span>'
+    if nm:
+        inner += f'<span class="cn">{_wh_escape(nm)}</span>'
+    return f'<div class="cell belt" data-code="{code}" {onclick}>{inner}</div>'
+
+def _wh_uniform_cell(item):
+    """Generate one uniform cell HTML with inline onclick"""
+    code = _wh_escape(str(item.get('code', '')))
+    person = str(item.get('person', ''))
+    nm = _wh_fmt_name(person)
+    cabinet = _wh_escape(str(item.get('cabinet', '')))
+    belt = _wh_escape(str(item.get('belt', '')))
+    has_shirt = '1' if code in SHIRT_SET else '0'
+    psn = _wh_escape(person)
+    onclick = f"onclick=\"wh_openUni('{code}','{cabinet}','{belt}','{psn}','{has_shirt}')\""
+    inner = f'<span class="cc">{code}</span>'
+    if nm:
+        inner += f'<span class="cn">{_wh_escape(nm)}</span>'
+    if has_shirt == '1':
+        inner += '<span class="ct" style="background:#4CAF50">衬衫</span>'
+    return f'<div class="cell uniform" data-code="{code}" {onclick}>{inner}</div>'
+
+def _wh_render_section(items, item_type, title, color):
+    """Render a belts or uniforms section with cabinet grouping"""
+    if not items:
+        return ''
+    cabs = ['一柜','二柜','三柜','四柜','五柜','六柜']
+    ccl = ['#E65100','#FF8F00','#F9A825','#FFB300','#FFC107','#FFCA28']
+    cell_fn = _wh_belt_cell if item_type == 'belt' else _wh_uniform_cell
+
+    h = f'<div class="section"><div class="section-header"><span class="tag" style="background:{color}">{title[:2]}</span>{title} · {len(items)}项</div><div class="table-wrap">'
+    for ci, cab in enumerate(cabs):
+        grp = [it for it in items if it.get('cabinet') == cab]
+        if not grp:
+            continue
+        h += f'<div class="cab-label" style="color:{ccl[ci]};border-color:{ccl[ci]}">{cab} · {len(grp)}项</div>'
+        h += '<div class="grid-table" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))">'
+        for item in grp:
+            h += cell_fn(item)
+        h += '</div>'
+    h += '</div></div>'
+    return h
+
 def render_warehouse_full():
-    """内嵌原版 warehouse-map-mobile.html, 仅替换 var D 数据"""
-    import os, re
-    tpl = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'warehouse-map-mobile.html')
-    with open(tpl, 'r', encoding='utf-8') as f:
-        html = f.read()
-    # 分三段：前缀 (到 var D =) + JSON 数据 + 后缀 (从 var ALL= 起)
-    pre, rest = html.split('\nvar D = ', 1)
-    json_block, rest2 = rest.split('\nvar ALL=', 1)
-    return pre + '\nvar D = ' + warehouse_data_json() + ';\nvar ALL=' + rest2
+    """Python 端预生成完整仓库 HTML，inline onclick，零外部文件依赖"""
+    import json
+    data = json.loads(warehouse_data_json())
+    body = (
+        _wh_render_boots(data) +
+        _wh_render_section(data.get('belts', []), 'belt', '🎽 腰带', '#C62828') +
+        _wh_render_section(data.get('uniforms', []), 'uniform', '👔 礼服', '#1565C0')
+    )
+    return '''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>物资仓库 — 国旗仪仗队</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f0ec;color:#333;min-height:100vh;font-size:14px}
+.header{background:linear-gradient(135deg,#8B0000,#B71C1C);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:50}
+.header h1{font-size:1rem;font-weight:700}.header .sub{font-size:.65rem;opacity:.85}
+.search-row{display:flex;gap:6px;margin-top:8px;position:relative}
+.search-row input{flex:1;padding:10px 12px;border:none;border-radius:8px;font-size:.85rem;outline:none;background:#fff;min-width:0}
+.search-row button{padding:10px 16px;border:none;border-radius:8px;background:#E65100;color:#fff;font-weight:700;cursor:pointer;font-size:.85rem;white-space:nowrap}
+.suggestions{position:absolute;top:44px;left:0;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:100;max-height:180px;overflow-y:auto;display:none;font-size:.8rem}
+.suggestions .item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0ece8}
+.suggestions .item:hover{background:#FFF3E0}
+.main{padding:8px}
+.section{margin-bottom:12px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden;border:1px solid #e8e0d8}
+.section-header{padding:8px 14px;font-size:.8rem;font-weight:700;border-bottom:2px solid #8B0000;display:flex;align-items:center;gap:8px;background:#fff}
+.section-header .tag{padding:3px 10px;border-radius:4px;color:#fff;font-size:.65rem;font-weight:600}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:4px}
+.grid-table{display:grid;gap:2px;padding:2px}
+.cell{border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 6px;min-width:70px;min-height:50px;cursor:pointer;transition:all .15s;text-align:center;border:1px solid transparent;-webkit-tap-highlight-color:transparent}
+.cell:active{transform:scale(.95)}
+.cell.hl{border-color:#ff5722!important;box-shadow:0 0 0 2px #ff5722,0 0 12px rgba(255,87,34,.3)!important;z-index:10;animation:glow .8s ease infinite}
+.cell.empty{background:#fafaf7;border-color:#e8e4de;cursor:default}
+.cell.empty:active{transform:none}
+.cell .cc{font-weight:700;font-size:.68rem;margin-bottom:2px}
+.cell .cn{font-size:.6rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#666}
+.cell .ct{font-size:.5rem;color:#fff;padding:1px 4px;border-radius:2px;margin-top:1px}
+.cell.gh{min-width:auto;min-height:22px;padding:2px 3px;font-size:.65rem}
+.cell.gh:active{transform:none}
+.cell.boot{background:#FFF3E0;border-color:#FFE0B2}.cell.boot .cc{color:#BF360C}
+.cell.belt{background:#FCE4EC;border-color:#F8BBD0}.cell.belt .cc{color:#880E4F}
+.cell.uniform{background:#E3F2FD;border-color:#BBDEFB}.cell.uniform .cc{color:#0D47A1}
+@keyframes glow{0%,100%{box-shadow:0 0 0 2px #ff5722}50%{box-shadow:0 0 0 5px #ff5722,0 0 16px rgba(255,87,34,.4)}}
+.panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:16px;z-index:60;max-height:50vh;overflow-y:auto;display:none;border-top:3px solid #8B0000}
+.panel.show{display:block}
+.panel .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.panel .ph h3{font-size:.85rem;color:#8B0000}
+.panel .pc{font-size:.78rem;line-height:2;color:#555}
+.panel .pc strong{color:#333}
+.panel .close{font-size:1.2rem;color:#999;cursor:pointer;padding:4px 8px;background:none;border:none}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);z-index:55;display:none}
+.overlay.show{display:block}
+.cab-label{font-size:.65rem;font-weight:700;padding:3px 10px;border-left:3px solid;margin:4px 0 2px}
+.tip{text-align:center;color:#999;font-size:.65rem;padding:8px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🇨🇳 国旗仪仗队 · 物资仓库</h1>
+  <div class="sub">马靴 · 腰带 · 礼服 存放位置</div>
+  <div class="search-row">
+    <input type="text" id="q" placeholder="搜索库位/姓名/尺码..." oninput="wh_si()">
+    <button onclick="wh_ds()">🔍</button>
+    <div class="suggestions" id="sug"></div>
+  </div>
+</div>
+<div class="main"><div id="ct">''' + body + '''</div><div class="tip">点击格子查看详情 | 左右滑动表格</div></div>
+<div class="overlay" id="ov" onclick="wh_close()"></div>
+<div class="panel" id="pn"><div class="ph"><h3 id="pt"></h3><button class="close" onclick="wh_close()">✕</button></div><div class="pc" id="pb"></div></div>
+
+<script>
+function wh_open(title,body){document.getElementById('pt').innerHTML=title;document.getElementById('pb').innerHTML=body;document.getElementById('pn').classList.add('show');document.getElementById('ov').classList.add('show')}
+function wh_close(){document.getElementById('pn').classList.remove('show');document.getElementById('ov').classList.remove('show')}
+function wh_openBoot(code,person){
+  wh_open('🥾 马靴 '+code,'📍 库位：<strong>'+code+'</strong><br>👤 '+(person||'未分配'))
+}
+function wh_openBelt(code,gender,cabinet,uniform_size,person){
+  wh_open('🎽 腰带 '+code,gender+' · '+cabinet+'<br>👔 礼服尺码：<strong>'+uniform_size+'</strong><br>👤 <strong>'+(person||'未分配')+'</strong>')
+}
+function wh_openUni(code,cabinet,belt,person,hasShirt){
+  var st=hasShirt==='1'?' <span style="background:#4CAF50;color:#fff;padding:1px 6px;border-radius:3px;font-size:.65rem">有配套衬衫</span>':'';
+  wh_open('👔 礼服 '+code+st,'🏷️ '+cabinet+'<br>🎽 腰带：<strong>'+belt+'</strong><br>👤 <strong>'+(person||'未分配')+'</strong>')
+}
+// Simple search
+(function(){
+var ALL=[];
+var cells=document.querySelectorAll('.cell[data-code]');
+cells.forEach(function(el){
+  var code=el.getAttribute('data-code'),type='';
+  if(el.classList.contains('boot'))type='🥾';
+  else if(el.classList.contains('belt'))type='🎽';
+  else type='👔';
+  ALL.push({el:el,type:type,code:code});
+});
+window.wh_si=function(){
+  var q=document.getElementById('q').value.trim(),s=document.getElementById('sug');
+  if(q.length<1){s.style.display='none';return}
+  var ql=q.toLowerCase();
+  var ms=ALL.filter(function(a){return a.code.toLowerCase().indexOf(ql)>=0||(a.person&&a.person.indexOf(q)>=0)}).slice(0,6);
+  if(!ms.length){s.style.display='none';return}
+  s.innerHTML=ms.map(function(m){return '<div class="item">'+m.type+' '+m.code+'</div>'}).join('');
+  s.style.display='block';
+};
+window.wh_ds=function(){
+  var q=document.getElementById('q').value.trim();if(!q)return;
+  document.getElementById('sug').style.display='none';
+  var ql=q.toLowerCase();
+  var ms=ALL.filter(function(a){return a.code.toLowerCase().indexOf(ql)>=0});
+  if(!ms.length){wh_open('🔍 搜索','未找到 "'+q+'"');return}
+  ms[0].el.scrollIntoView({behavior:'smooth',block:'center'});
+  ms[0].el.click();
+};
+})();
+</script>
+</body>
+</html>'''
 
 
 # ═══════════════════════════════════════
