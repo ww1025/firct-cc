@@ -633,33 +633,10 @@ def make_person_rows(sorted_people, changed):
         cells = []
         for k in items:
             v = p.get(k, '')
-            if ch.get(k):
-                v += f'<br><span class="old">原来的→</span>'
-                cells.append(f'<td class="hl">{v}</td>')
-            else:
-                cells.append(f'<td>{v}</td>')
+            cls = ' class="hl"' if ch.get(k) else ''
+            cells.append(f'<td{cls}>{v}</td>')
         rows.append(f'<tr><td>{i+1}</td><td><b>{p["name"]}</b></td><td>{g}</td>{"".join(cells)}</tr>')
     return '\n'.join(rows)
-
-
-def make_conflicts_html(conflicts, type_names):
-    if not conflicts:
-        return ''
-    rows = []
-    for c in conflicts:
-        t = type_names.get(c['item_type'], c['item_type'])
-        rows.append(f'<tr><td>{t}</td><td>{c["item_code"]}</td><td>{c["person_to_move"]}</td><td>{c["person_to_keep"]}</td></tr>')
-    return f'<div class="sect-title">冲突详情</div><table><tr><th>装备类型</th><th>编号</th><th>需变动</th><th>保留</th></tr>{"".join(rows)}</table>'
-
-
-def make_reassigns_html(reassigns, type_names):
-    if not reassigns:
-        return ''
-    rows = []
-    for r in reassigns:
-        t = type_names.get(r['item_type'], r['item_type'])
-        rows.append(f'<tr><td>{r["person"]}</td><td>{t}</td><td class="old">{r["old_item"]}</td><td class="hl">{r["new_item"]}</td></tr>')
-    return f'<div class="sect-title">重分配方案</div><table><tr><th>姓名</th><th>装备</th><th>旧编号</th><th>新编号</th></tr>{"".join(rows)}</table>'
 
 
 def render_warehouse():
@@ -1247,7 +1224,6 @@ elif st.session_state.page == 'faculty':
                     if missing: msg += f"（{len(missing)} 人未在库存中找到：{', '.join(missing)}）"
 
                     affected = len(set(r['person'] for r in reassigns))
-                    type_names = {'uniform':'礼服','hat':'礼帽','boots':'马靴','belt':'腰带'}
 
                     # Build result HTML to match Flask version exactly
                     result_html = '<div class="fac-card" style="animation:fadeInUp .5s ease-out">'
@@ -1262,8 +1238,6 @@ elif st.session_state.page == 'faculty':
                     result_html += '<table><tr><th>序号</th><th>姓名</th><th>性别</th><th>礼服</th><th>礼帽</th><th>马靴</th><th>腰带</th></tr>'
                     result_html += make_person_rows(sorted_people, changed)
                     result_html += '</table>'
-                    result_html += make_conflicts_html(conflicts, type_names)
-                    result_html += make_reassigns_html(reassigns, type_names)
                     result_html += '</div>'
                     st.markdown(result_html, unsafe_allow_html=True)
 
