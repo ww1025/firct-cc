@@ -1037,13 +1037,37 @@ tr:nth-child(even) td {background:var(--paper-warm)}
 
 [data-testid="stFileUploader"] {
   background: var(--cream) !important;
-  border: 2px dashed var(--ink-faint) !important;
+  border: 2px solid var(--ink-faint) !important;
   border-radius: 0 !important;
   padding: 32px !important;
+  text-align: center !important;
+  position: relative !important;
+}
+/* corner bracket decorations — matching .up from Flask */
+[data-testid="stFileUploader"]::before {
+  content: '' !important; position: absolute !important;
+  top: 8px !important; left: 8px !important;
+  width: 14px !important; height: 14px !important;
+  border-top: 1px solid var(--flag-red) !important;
+  border-left: 1px solid var(--flag-red) !important;
+  opacity: 0.3 !important; pointer-events: none !important;
+}
+[data-testid="stFileUploader"]::after {
+  content: '' !important; position: absolute !important;
+  bottom: 8px !important; right: 8px !important;
+  width: 14px !important; height: 14px !important;
+  border-bottom: 1px solid var(--flag-red) !important;
+  border-right: 1px solid var(--flag-red) !important;
+  opacity: 0.3 !important; pointer-events: none !important;
 }
 [data-testid="stFileUploader"]:hover {
   border-color: var(--flag-red) !important;
   background: var(--paper-card) !important;
+}
+[data-testid="stFileUploader"]:hover::before,
+[data-testid="stFileUploader"]:hover::after {
+  border-color: var(--flag-red) !important;
+  opacity: 0.7 !important;
 }
 
 .stTextArea textarea {
@@ -1156,21 +1180,18 @@ elif st.session_state.page == 'faculty':
     """, unsafe_allow_html=True)
     image_file = st.file_uploader("上传照片", type=['png','jpg','jpeg'], key="fac_img", label_visibility="collapsed")
 
-    # —— OCR 自动触发：必须在 text_area(key="fac_roster") 之前设置 session_state ——
+    # —— OCR 自动触发（必须在 text_area 创建前） ——
     if excel_file is not None and image_file is not None:
         if not st.session_state.get('_ocr_done', False):
             with st.spinner("AI 正在识别照片中的人员名单..."):
                 ocr_text = ocr_faculty_roster(image_file.getvalue(), excel_file.getvalue())
-            if ocr_text:
-                st.session_state.fac_roster = ocr_text  # 这里写入，然后 rerun 后 text_area 会读到
+            # 无论有没有结果都写入 session_state，避免重复触发
+            st.session_state.fac_roster = ocr_text if ocr_text else ''
             st.session_state._ocr_done = True
             st.rerun()
 
-    st.markdown('<div class="hint">⚠️ OCR识别结果已填入下方，请核对修正后再点生成</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div class="or"><hr><span>或手动输入 / 修正队列人员</span><hr></div>
-    <p style="color:var(--ink-light);font-size:13px;margin:8px 0">每行一人或顿号分隔。总负责、场控、后勤、摄影不参与分配。</p>
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="or"><hr><span>或手动输入 / 修正队列人员</span><hr></div>', unsafe_allow_html=True)
+    st.markdown('<p style="color:var(--ink-light);font-size:13px;margin:8px 0">每行一人或顿号分隔。总负责、场控、后勤、摄影不参与分配。</p>', unsafe_allow_html=True)
 
     roster = st.text_area("队列人员",
                           placeholder="林珩\n韩雅丽\n艾克达\n张鹏\n夏瑞泽\n戴傲\n叶宇轩",
@@ -1228,26 +1249,23 @@ elif st.session_state.page == 'faculty':
                     affected = len(set(r['person'] for r in reassigns))
                     type_names = {'uniform':'礼服','hat':'礼帽','boots':'马靴','belt':'腰带'}
 
-                    # 使用与 Flask 版完全相同的 HTML 渲染结果
-                    st.markdown(f'''<div class="fac-card" style="animation:fadeInUp .5s ease-out">
-<h2><span class="badge">3</span> 生成结果</h2>
-<p style="color:var(--ink-light);margin-bottom:16px">{msg}</p>
-
-<div class="stats">
-<div class="st c"><b>{len(conflicts)}</b><span>冲突数</span></div>
-<div class="st r"><b>{len(reassigns)}</b><span>重分配</span></div>
-<div class="st p"><b>{affected}</b><span>受影响人数</span></div>
-</div>
-
-<div class="sect-title">排序后人员列表</div>
-<table>
-<tr><th>序号</th><th>姓名</th><th>性别</th><th>礼服</th><th>礼帽</th><th>马靴</th><th>腰带</th></tr>
-{make_person_rows(sorted_people, changed)}
-</table>
-{make_conflicts_html(conflicts, type_names)}
-{make_reassigns_html(reassigns, type_names)}
-</div>
-''', unsafe_allow_html=True)
+                    # Build result HTML to match Flask version exactly
+                    result_html = '<div class="fac-card" style="animation:fadeInUp .5s ease-out">'
+                    result_html += '<h2><span class="badge">3</span> 生成结果</h2>'
+                    result_html += f'<p style="color:var(--ink-light);margin-bottom:16px">{msg}</p>'
+                    result_html += '<div class="stats">'
+                    result_html += f'<div class="st c"><b>{len(conflicts)}</b><span>冲突数</span></div>'
+                    result_html += f'<div class="st r"><b>{len(reassigns)}</b><span>重分配</span></div>'
+                    result_html += f'<div class="st p"><b>{affected}</b><span>受影响人数</span></div>'
+                    result_html += '</div>'
+                    result_html += '<div class="sect-title">排序后人员列表</div>'
+                    result_html += '<table><tr><th>序号</th><th>姓名</th><th>性别</th><th>礼服</th><th>礼帽</th><th>马靴</th><th>腰带</th></tr>'
+                    result_html += make_person_rows(sorted_people, changed)
+                    result_html += '</table>'
+                    result_html += make_conflicts_html(conflicts, type_names)
+                    result_html += make_reassigns_html(reassigns, type_names)
+                    result_html += '</div>'
+                    st.markdown(result_html, unsafe_allow_html=True)
 
                     st.download_button("📥 下载礼服分配表 (.xlsx)",
                                       data=base64.b64decode(b64),
