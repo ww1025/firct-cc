@@ -1491,4 +1491,4 @@ elif st.session_state.page == 'warehouse':
 
     # 用 st.components.v1.html 才能跑 JS（st.markdown 会过滤 script）
     wh_full = render_warehouse_full()
-    st.components.v1.html(wh_full, height=2600, scrolling=True)
+    st.components.v1.html(wh_full, height=800, scrolling=True)
