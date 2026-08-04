@@ -690,14 +690,15 @@ def make_person_rows(sorted_people, changed):
 
 
 def render_warehouse_full():
-    """用原始 warehouse-map-mobile.html 模板，只注入数据——保证 100% 一致"""
-    import os
-    template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'warehouse-map-mobile.html')
-    with open(template_path, 'r', encoding='utf-8') as f:
+    """内嵌原版 warehouse-map-mobile.html, 仅替换 var D 数据"""
+    import os, re
+    tpl = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'warehouse-map-mobile.html')
+    with open(tpl, 'r', encoding='utf-8') as f:
         html = f.read()
-    # 替换 var D = {...}; 注入最新数据
-    import re
-    return re.sub(r'var D = \{.*?\};', 'var D = ' + warehouse_data_json() + ';', html, count=1, flags=re.DOTALL)
+    # 分三段：前缀 (到 var D =) + JSON 数据 + 后缀 (从 var ALL= 起)
+    pre, rest = html.split('\nvar D = ', 1)
+    json_block, rest2 = rest.split('\nvar ALL=', 1)
+    return pre + '\nvar D = ' + warehouse_data_json() + ';\nvar ALL=' + rest2
 
 
 # ═══════════════════════════════════════
