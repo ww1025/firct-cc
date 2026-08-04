@@ -821,9 +821,9 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f0ec;c
 .search-row{display:flex;gap:6px;margin-top:8px;position:relative}
 .search-row input{flex:1;padding:10px 12px;border:none;border-radius:8px;font-size:.85rem;outline:none;background:#fff;min-width:0}
 .search-row button{padding:10px 16px;border:none;border-radius:8px;background:#E65100;color:#fff;font-weight:700;cursor:pointer;font-size:.85rem;white-space:nowrap}
-.suggestions{position:absolute;top:44px;left:0;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:100;max-height:180px;overflow-y:auto;display:none;font-size:.8rem}
-.suggestions .item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0ece8}
-.suggestions .item:hover{background:#FFF3E0}
+.suggestions{position:absolute;top:44px;left:0;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:100;max-height:180px;overflow-y:auto;display:none;font-size:.8rem;color:#222}
+.suggestions .item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #e8e4de;color:#222}
+.suggestions .item:hover{background:#FFF3E0;color:#111}
 .main{padding:8px}
 .section{margin-bottom:12px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden;border:1px solid #e8e0d8}
 .section-header{padding:8px 14px;font-size:.8rem;font-weight:700;border-bottom:2px solid #8B0000;display:flex;align-items:center;gap:8px;background:#fff}
