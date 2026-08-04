@@ -1489,6 +1489,15 @@ elif st.session_state.page == 'warehouse':
     st.text_input("搜索库位 / 姓名 / 尺码...", key="wh_search",
                    placeholder="搜索库位 / 姓名 / 尺码...", label_visibility="collapsed")
 
-    # 用 st.components.v1.html 才能跑 JS（st.markdown 会过滤 script）
-    wh_full = render_warehouse_full()
-    st.components.v1.html(wh_full, height=800, scrolling=True)
+    # 按需加载 — 避免每次进页面都生成 2000+ 行 HTML iframe
+    if 'wh_loaded' not in st.session_state:
+        st.session_state.wh_loaded = False
+
+    if not st.session_state.wh_loaded:
+        if st.button("📦 加载物资仓库", use_container_width=True,
+                     help="马靴 · 腰带 · 礼服 存放位置，点击格子查看详情"):
+            st.session_state.wh_loaded = True
+            st.rerun()
+    else:
+        wh_full = render_warehouse_full()
+        st.components.v1.html(wh_full, height=800, scrolling=True)
