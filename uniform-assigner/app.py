@@ -1316,7 +1316,7 @@ tr:nth-child(even) td {background:var(--paper-warm)}
 if st.session_state.page == 'home':
     st.markdown('<div class="entries">', unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("""
         <div class="home-card">
@@ -1338,6 +1338,17 @@ if st.session_state.page == 'home':
         """, unsafe_allow_html=True)
         if st.button("进入", key="btn_warehouse", use_container_width=True):
             st.session_state.page = 'warehouse'; st.rerun()
+
+    with col3:
+        st.markdown("""
+        <div class="home-card">
+          <div class="icon">&#128295;</div>
+          <h3>礼服智能分配 <span class="star-deco">&#9733;</span></h3>
+          <p>队员管理 · 自动预分配 · 试穿记录<br>冲突诊断 → 最终分配 → 导出</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("进入", key="btn_smart", use_container_width=True):
+            st.session_state.page = 'smart'; st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1501,3 +1512,8 @@ elif st.session_state.page == 'warehouse':
     else:
         wh_full = render_warehouse_full()
         st.components.v1.html(wh_full, height=800, scrolling=True)
+
+
+elif st.session_state.page == 'smart':
+    from smart_alloc import pages as smart_pages
+    smart_pages.render(get_warehouse_data=warehouse_data_json)
