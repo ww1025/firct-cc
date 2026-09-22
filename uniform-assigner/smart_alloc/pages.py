@@ -26,6 +26,38 @@ MEMBER_IMPORT_COLS = ["姓名", "性别", "班级", "新老队员", "是否本�
                       "体重_kg", "头围_cm", "胸围_cm", "腰围_cm", "小腿围_cm",
                       "脚长_mm", "上一年礼服ID", "上一年马靴ID", "申请换码", "备注"]
 
+# 本页使用 Streamlit 原生组件（metric/表格/下拉框等），而 app 全局强制了米色背景
+# 但没强制浅色主题；深色模式下原生组件会渲染成浅色文字导致看不清。这里强制深色文字
+# 并恢复被全局 reset 清掉的间距。
+_SMART_CSS = """
+<style>
+:root { color-scheme: light; }
+.block-container { padding: 8px 28px 48px 28px !important; }
+div[data-testid="stVerticalBlock"] { gap: 0.8rem !important; }
+
+[data-testid="stMetric"] {
+  background: #fefcf8 !important; border: 1px solid rgba(184,22,22,.08) !important;
+  border-radius: 8px !important; padding: 16px 14px !important;
+}
+[data-testid="stMetricValue"] { color: #0f2518 !important; font-family: 'SimSun','KaiTi',serif !important; }
+[data-testid="stMetricLabel"] p { color: #5c4a3a !important; }
+
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] span,
+[data-testid="stMarkdownContainer"] li { color: #2c1810 !important; }
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stMarkdownContainer"] h3,
+[data-testid="stMarkdownContainer"] h4 { color: #0f2518 !important; }
+[data-testid="stCaptionContainer"] p { color: #5c4a3a !important; }
+
+[data-testid="stWidgetLabel"] p { color: #2c1810 !important; }
+[data-testid="stRadio"] label p,
+[data-testid="stCheckbox"] label p,
+[data-testid="stSelectbox"] label p { color: #2c1810 !important; }
+</style>
+"""
+
+
 
 # ═══════════════ 工具函数 ═══════════════
 def _next_member_id(store):
@@ -94,6 +126,8 @@ def _run_allocation(store, cfg):
 def render(get_warehouse_data):
     store = repository.get_store()
     cfg = repository.get_config(store)
+
+    st.markdown(_SMART_CSS, unsafe_allow_html=True)
 
     st.markdown("""
     <div class="flag-header">
@@ -385,6 +419,20 @@ def _page_lock(store, cfg):
 # ═══════════════ 4. 装备库存 ═══════════════
 def _page_equipment(store, cfg):
     st.markdown("#### 装备实体清单（复用物资仓库数据）")
+
+    # 汇总：让数量一目了然
+    n_u = sum(1 for e in store["equipment"] if e["category"] == "uniform")
+    n_b = sum(1 for e in store["equipment"] if e["category"] == "boots")
+    n_dmg = sum(1 for e in store["equipment"] if e["status"] != "available")
+    n_belt = len({e.get("paired_belt_id") for e in store["equipment"]
+                  if e["category"] == "uniform" and e.get("paired_belt_id")})
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("礼服", n_u)
+    m2.metric("马靴", n_b)
+    m3.metric("配套腰带", n_belt)
+    m4.metric("不可分配", n_dmg)
+    st.caption("腰带随礼服套装管理、不单独分配；礼帽暂不在本模块内。数量与「物资仓库」页一致，按实体装备逐件统计。")
+
     cat = st.radio("类别", ["全部", "礼服", "马靴"], horizontal=True, key="eq_cat")
     rows = []
     for e in store["equipment"]:
